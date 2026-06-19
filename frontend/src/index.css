@@ -1,0 +1,79 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  font-family: "Noto Sans SC", -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif;
+  line-height: 1.6;
+  font-weight: 400;
+  font-synthesis: none;
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+body {
+  background-color: #F9F5EB;
+  color: #3D3D3D;
+}
+
+@layer components {
+  .page-container {
+    @apply max-w-7xl mx-auto px-6 py-8;
+  }
+  .card {
+    @apply bg-white rounded-lg border border-cream-300/50 shadow-sm hover:shadow-md transition-all duration-300;
+  }
+  .card-hover {
+    @apply hover:-translate-y-0.5 hover:shadow-lg;
+  }
+  .btn-primary {
+    @apply bg-ochre-500 text-white px-5 py-2.5 rounded-lg font-medium hover:bg-ochre-600 transition-all duration-200 shadow-sm hover:shadow-md active:translate-y-0;
+  }
+  .btn-secondary {
+    @apply bg-sage-500 text-white px-5 py-2.5 rounded-lg font-medium hover:bg-sage-600 transition-all duration-200 shadow-sm;
+  }
+  .btn-outline {
+    @apply border border-ochre-500 text-ochre-500 px-5 py-2.5 rounded-lg font-medium hover:bg-ochre-50 transition-all duration-200;
+  }
+  .input-field {
+    @apply w-full px-4 py-2.5 rounded-lg border border-cream-300 bg-white focus:outline-none focus:ring-2 focus:ring-ochre-500/30 focus:border-ochre-500 transition-all duration-200 text-ink-900;
+  }
+  .label-text {
+    @apply block text-sm font-medium text-ink-600 mb-1.5;
+  }
+  .badge {
+    @apply inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium;
+  }
+  .badge-pending {
+    @apply badge bg-amber-100 text-amber-800;
+  }
+  .badge-confirmed {
+    @apply badge bg-emerald-100 text-emerald-800;
+  }
+  .badge-revision {
+    @apply badge bg-red-100 text-red-800;
+  }
+  .badge-elder {
+    @apply badge bg-ochre-100 text-ochre-700;
+  }
+  .badge-youth {
+    @apply badge bg-sage-100 text-sage-700;
+  }
+  .section-title {
+    @apply font-display text-2xl text-ink-900 mb-6;
+  }
+}
+
+@keyframes slide-in {
+  from {
+    transform: translateX(100%);
+  }
+  to {
+    transform: translateX(0);
+  }
+}
+
+.animate-slide-in {
+  animation: slide-in 0.3s ease-out;
+}

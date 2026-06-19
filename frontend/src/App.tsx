@@ -1,0 +1,24 @@
+import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
+import Layout from '@/components/Layout';
+import Collection from '@/pages/Collection';
+import Pronunciation from '@/pages/Pronunciation';
+import Annotation from '@/pages/Annotation';
+import Collaboration from '@/pages/Collaboration';
+import Statistics from '@/pages/Statistics';
+
+export default function App() {
+  return (
+    <Router>
+      <Routes>
+        <Route path="/" element={<Layout />}>
+          <Route index element={<Navigate to="/collection" replace />} />
+          <Route path="collection" element={<Collection />} />
+          <Route path="pronunciation" element={<Pronunciation />} />
+          <Route path="annotation" element={<Annotation />} />
+          <Route path="collaboration" element={<Collaboration />} />
+          <Route path="statistics" element={<Statistics />} />
+        </Route>
+      </Routes>
+    </Router>
+  );
+}

@@ -1,0 +1,464 @@
+[
+  {
+    "model": "terms.term",
+    "pk": 1,
+    "fields": {
+      "word": "堂客",
+      "pronunciation_placeholder": "táng kè",
+      "meaning": "妻子，已婚妇女的称呼",
+      "usage_scene": "日常生活中指代自己的妻子，或泛指已婚妇女",
+      "era": "1950年代前",
+      "category": "日常用语",
+      "status": "confirmed",
+      "created_by": "王大爷",
+      "created_at": "2025-06-01T08:00:00Z",
+      "updated_at": "2025-06-01T08:00:00Z"
+    }
+  },
+  {
+    "model": "terms.term",
+    "pk": 2,
+    "fields": {
+      "word": "嬢嬢",
+      "pronunciation_placeholder": "niāng niang",
+      "meaning": "姑姑、阿姨，对女性长辈的尊称",
+      "usage_scene": "家庭聚会中称呼父亲的姐妹或母亲的姐妹",
+      "era": "1960年代",
+      "category": "亲属称谓",
+      "status": "confirmed",
+      "created_by": "李奶奶",
+      "created_at": "2025-06-02T09:00:00Z",
+      "updated_at": "2025-06-02T09:00:00Z"
+    }
+  },
+  {
+    "model": "terms.term",
+    "pk": 3,
+    "fields": {
+      "word": "耙田",
+      "pronunciation_placeholder": "pá tián",
+      "meaning": "用耙子平整水田，春耕前的准备工序",
+      "usage_scene": "春耕时节，犁田之后用耙将泥土耙碎整平",
+      "era": "1950年代前",
+      "category": "农事用语",
+      "status": "confirmed",
+      "created_by": "张伯伯",
+      "created_at": "2025-06-03T10:00:00Z",
+      "updated_at": "2025-06-03T10:00:00Z"
+    }
+  },
+  {
+    "model": "terms.term",
+    "pk": 4,
+    "fields": {
+      "word": "吃讲茶",
+      "pronunciation_placeholder": "chī jiǎng chá",
+      "meaning": "在茶馆里调解纠纷，请中间人说理评断",
+      "usage_scene": "邻里之间发生矛盾时，请德高望重者主持公道",
+      "era": "1970年代",
+      "category": "旧行话",
+      "status": "pending",
+      "created_by": "赵叔叔",
+      "created_at": "2025-06-04T11:00:00Z",
+      "updated_at": "2025-06-04T11:00:00Z"
+    }
+  },
+  {
+    "model": "terms.term",
+    "pk": 5,
+    "fields": {
+      "word": "抄手",
+      "pronunciation_placeholder": "chāo shǒu",
+      "meaning": "馄饨，四川方言中对馄饨的叫法",
+      "usage_scene": "早餐或小吃摊点，点一份红油抄手",
+      "era": "1980年代",
+      "category": "饮食用语",
+      "status": "confirmed",
+      "created_by": "刘阿姨",
+      "created_at": "2025-06-05T12:00:00Z",
+      "updated_at": "2025-06-05T12:00:00Z"
+    }
+  },
+  {
+    "model": "terms.term",
+    "pk": 6,
+    "fields": {
+      "word": "幺儿",
+      "pronunciation_placeholder": "yāo ér",
+      "meaning": "最小的孩子，也泛指心爱的孩子",
+      "usage_scene": "父母称呼最小的子女，或长辈对晚辈的亲昵称呼",
+      "era": "1960年代",
+      "category": "亲属称谓",
+      "status": "confirmed",
+      "created_by": "陈婆婆",
+      "created_at": "2025-06-06T13:00:00Z",
+      "updated_at": "2025-06-06T13:00:00Z"
+    }
+  },
+  {
+    "model": "terms.term",
+    "pk": 7,
+    "fields": {
+      "word": "打谷子",
+      "pronunciation_placeholder": "dǎ gǔ zi",
+      "meaning": "收割稻谷，秋收的农活",
+      "usage_scene": "秋收时节在田里割稻、脱粒的整套流程",
+      "era": "1970年代",
+      "category": "农事用语",
+      "status": "needs_revision",
+      "created_by": "周爷爷",
+      "created_at": "2025-06-07T14:00:00Z",
+      "updated_at": "2025-06-07T14:00:00Z"
+    }
+  },
+  {
+    "model": "terms.term",
+    "pk": 8,
+    "fields": {
+      "word": "撇脱",
+      "pronunciation_placeholder": "piě tuó",
+      "meaning": "干脆利落，省事方便",
+      "usage_scene": "形容做事干脆，或某件事很简单",
+      "era": "1990年代",
+      "category": "日常用语",
+      "status": "pending",
+      "created_by": "小王",
+      "created_at": "2025-06-08T15:00:00Z",
+      "updated_at": "2025-06-08T15:00:00Z"
+    }
+  },
+  {
+    "model": "terms.term",
+    "pk": 9,
+    "fields": {
+      "word": "雄起",
+      "pronunciation_placeholder": "xióng qǐ",
+      "meaning": "加油，振作起来，不服输",
+      "usage_scene": "比赛时为队员加油，或鼓励他人振作",
+      "era": "2000年代",
+      "category": "日常用语",
+      "status": "confirmed",
+      "created_by": "小刘",
+      "created_at": "2025-06-09T16:00:00Z",
+      "updated_at": "2025-06-09T16:00:00Z"
+    }
+  },
+  {
+    "model": "terms.term",
+    "pk": 10,
+    "fields": {
+      "word": "摆龙门阵",
+      "pronunciation_placeholder": "bǎi lóng mén zhèn",
+      "meaning": "闲聊，讲故事，摆谈",
+      "usage_scene": "饭后茶余大家聚在一起聊天闲谈",
+      "era": "2010年代及以后",
+      "category": "日常用语",
+      "status": "confirmed",
+      "created_by": "小李",
+      "created_at": "2025-06-10T17:00:00Z",
+      "updated_at": "2025-06-10T17:00:00Z"
+    }
+  },
+  {
+    "model": "terms.pronunciation",
+    "pk": 1,
+    "fields": {
+      "term": 1,
+      "ipa_notation": "tʰɑŋ kʰɤ",
+      "tone_description": "阳平去声",
+      "phonetic_spelling": "tang2 ke4",
+      "notes": "老派发音中'客'字声母略送气",
+      "contributed_by": "王大爷",
+      "role": "elder",
+      "created_at": "2025-06-01T08:30:00Z"
+    }
+  },
+  {
+    "model": "terms.pronunciation",
+    "pk": 2,
+    "fields": {
+      "term": 2,
+      "ipa_notation": "niɑŋ niɑŋ",
+      "tone_description": "阴平轻声",
+      "phonetic_spelling": "niang1 niang",
+      "notes": "第二个字轻读，带有亲昵语气",
+      "contributed_by": "李奶奶",
+      "role": "elder",
+      "created_at": "2025-06-02T09:30:00Z"
+    }
+  },
+  {
+    "model": "terms.pronunciation",
+    "pk": 3,
+    "fields": {
+      "term": 6,
+      "ipa_notation": "iɑʊ ɚ",
+      "tone_description": "阴平阳平",
+      "phonetic_spelling": "yao1 er2",
+      "notes": "儿化音明显，尾音上扬带撒娇感",
+      "contributed_by": "陈婆婆",
+      "role": "elder",
+      "created_at": "2025-06-06T13:30:00Z"
+    }
+  },
+  {
+    "model": "terms.pronunciation",
+    "pk": 4,
+    "fields": {
+      "term": 5,
+      "ipa_notation": "tʂʰɑʊ ʂou",
+      "tone_description": "阴平上声",
+      "phonetic_spelling": "chao1 shou3",
+      "notes": "年轻人发音偏普通话，声调趋平",
+      "contributed_by": "小刘",
+      "role": "youth",
+      "created_at": "2025-06-05T12:30:00Z"
+    }
+  },
+  {
+    "model": "terms.pronunciation",
+    "pk": 5,
+    "fields": {
+      "term": 8,
+      "ipa_notation": "pʰiɛ tʰuo",
+      "tone_description": "上声阳平",
+      "phonetic_spelling": "pie3 tuo2",
+      "notes": "发音短促有力，体现干脆的感觉",
+      "contributed_by": "小王",
+      "role": "youth",
+      "created_at": "2025-06-08T15:30:00Z"
+    }
+  },
+  {
+    "model": "terms.pronunciation",
+    "pk": 6,
+    "fields": {
+      "term": 10,
+      "ipa_notation": "pai luŋ mən tʂən",
+      "tone_description": "上声阳平阳平去声",
+      "phonetic_spelling": "bai3 long2 men2 zhen4",
+      "notes": "四字连读节奏感强，'阵'字略拖长",
+      "contributed_by": "小李",
+      "role": "youth",
+      "created_at": "2025-06-10T17:30:00Z"
+    }
+  },
+  {
+    "model": "terms.annotation",
+    "pk": 1,
+    "fields": {
+      "term": 1,
+      "type": "example_sentence",
+      "content": "我堂客今天回娘家去了。",
+      "extra_data": {"scene": "日常对话", "era": "1950年代前"},
+      "contributed_by": "王大爷",
+      "role": "elder",
+      "created_at": "2025-06-01T09:00:00Z",
+      "updated_at": "2025-06-01T09:00:00Z"
+    }
+  },
+  {
+    "model": "terms.annotation",
+    "pk": 2,
+    "fields": {
+      "term": 1,
+      "type": "mandarin_translation",
+      "content": "妻子",
+      "extra_data": {"dialect": "堂客", "mandarin": "妻子"},
+      "contributed_by": "小王",
+      "role": "youth",
+      "created_at": "2025-06-01T09:30:00Z",
+      "updated_at": "2025-06-01T09:30:00Z"
+    }
+  },
+  {
+    "model": "terms.annotation",
+    "pk": 3,
+    "fields": {
+      "term": 2,
+      "type": "kinship_term",
+      "content": "父亲的姐妹或母亲的姐妹均可称为嬢嬢",
+      "extra_data": {"relationship": "父亲的姐妹或母亲的姐妹", "mapping": "姑姑→嬢嬢 / 阿姨→嬢嬢"},
+      "contributed_by": "李奶奶",
+      "role": "elder",
+      "created_at": "2025-06-02T10:00:00Z",
+      "updated_at": "2025-06-02T10:00:00Z"
+    }
+  },
+  {
+    "model": "terms.annotation",
+    "pk": 4,
+    "fields": {
+      "term": 3,
+      "type": "example_sentence",
+      "content": "趁天晴赶紧把田耙了，好栽秧子。",
+      "extra_data": {"scene": "春耕农事", "era": "1950年代前"},
+      "contributed_by": "张伯伯",
+      "role": "elder",
+      "created_at": "2025-06-03T11:00:00Z",
+      "updated_at": "2025-06-03T11:00:00Z"
+    }
+  },
+  {
+    "model": "terms.annotation",
+    "pk": 5,
+    "fields": {
+      "term": 4,
+      "type": "example_sentence",
+      "content": "你们两个莫吵了，明天去茶馆吃讲茶，请三爷来评理。",
+      "extra_data": {"scene": "调解纠纷", "era": "1970年代"},
+      "contributed_by": "赵叔叔",
+      "role": "elder",
+      "created_at": "2025-06-04T12:00:00Z",
+      "updated_at": "2025-06-04T12:00:00Z"
+    }
+  },
+  {
+    "model": "terms.annotation",
+    "pk": 6,
+    "fields": {
+      "term": 5,
+      "type": "mandarin_translation",
+      "content": "馄饨",
+      "extra_data": {"dialect": "抄手", "mandarin": "馄饨"},
+      "contributed_by": "小刘",
+      "role": "youth",
+      "created_at": "2025-06-05T13:00:00Z",
+      "updated_at": "2025-06-05T13:00:00Z"
+    }
+  },
+  {
+    "model": "terms.annotation",
+    "pk": 7,
+    "fields": {
+      "term": 6,
+      "type": "family_note",
+      "content": "我们家幺儿从小就最受宠爱，婆婆每次都给他留好吃的。",
+      "extra_data": {"family_context": "外婆家常用", "note": "幺儿是家里最受宠的"},
+      "contributed_by": "陈婆婆",
+      "role": "elder",
+      "created_at": "2025-06-06T14:00:00Z",
+      "updated_at": "2025-06-06T14:00:00Z"
+    }
+  },
+  {
+    "model": "terms.annotation",
+    "pk": 8,
+    "fields": {
+      "term": 8,
+      "type": "synonym",
+      "content": "干脆、利索、爽快",
+      "extra_data": {"dialect_word": "撇脱", "mandarin_word": "干脆", "difference": "撇脱更强调省事方便，干脆侧重做事利落"},
+      "contributed_by": "小王",
+      "role": "youth",
+      "created_at": "2025-06-08T16:00:00Z",
+      "updated_at": "2025-06-08T16:00:00Z"
+    }
+  },
+  {
+    "model": "terms.annotation",
+    "pk": 9,
+    "fields": {
+      "term": 9,
+      "type": "example_sentence",
+      "content": "中国队雄起！全场都在喊。",
+      "extra_data": {"scene": "体育比赛", "era": "2000年代"},
+      "contributed_by": "小刘",
+      "role": "youth",
+      "created_at": "2025-06-09T17:00:00Z",
+      "updated_at": "2025-06-09T17:00:00Z"
+    }
+  },
+  {
+    "model": "terms.annotation",
+    "pk": 10,
+    "fields": {
+      "term": 10,
+      "type": "image_association",
+      "content": "老茶馆里几个老茶友围坐竹椅，端着盖碗茶，摆得眉飞色舞",
+      "extra_data": {"image_url": "", "description": "老茶馆里几个老茶友围坐竹椅，端着盖碗茶，摆得眉飞色舞"},
+      "contributed_by": "小李",
+      "role": "youth",
+      "created_at": "2025-06-10T18:00:00Z",
+      "updated_at": "2025-06-10T18:00:00Z"
+    }
+  },
+  {
+    "model": "terms.version",
+    "pk": 1,
+    "fields": {
+      "term": 1,
+      "interpretation": "指代自己的妻子，带有主人家的含义，旧时认为娶进门的媳妇就是堂上之人",
+      "scope": "川渝地区通用",
+      "is_common": true,
+      "contributed_by": "王大爷",
+      "role": "elder",
+      "created_at": "2025-06-01T10:00:00Z"
+    }
+  },
+  {
+    "model": "terms.version",
+    "pk": 2,
+    "fields": {
+      "term": 1,
+      "interpretation": "泛指已婚妇女，不一定专指自己的妻子",
+      "scope": "部分乡村地区",
+      "is_common": false,
+      "contributed_by": "小王",
+      "role": "youth",
+      "created_at": "2025-06-01T10:30:00Z"
+    }
+  },
+  {
+    "model": "terms.version",
+    "pk": 3,
+    "fields": {
+      "term": 2,
+      "interpretation": "对父亲姐妹的尊称，即姑姑",
+      "scope": "川东地区",
+      "is_common": true,
+      "contributed_by": "李奶奶",
+      "role": "elder",
+      "created_at": "2025-06-02T11:00:00Z"
+    }
+  },
+  {
+    "model": "terms.version",
+    "pk": 4,
+    "fields": {
+      "term": 5,
+      "interpretation": "四川方言中馄饨的叫法，因包法形似双手交叉抱在胸前而得名",
+      "scope": "四川全省",
+      "is_common": true,
+      "contributed_by": "刘阿姨",
+      "role": "elder",
+      "created_at": "2025-06-05T14:00:00Z"
+    }
+  },
+  {
+    "model": "terms.version",
+    "pk": 5,
+    "fields": {
+      "term": 10,
+      "interpretation": "源自三国故事中诸葛亮摆龙门阵的典故，引申为闲聊",
+      "scope": "川渝地区通用",
+      "is_common": true,
+      "contributed_by": "小李",
+      "role": "youth",
+      "created_at": "2025-06-10T19:00:00Z"
+    }
+  },
+  {
+    "model": "terms.version",
+    "pk": 6,
+    "fields": {
+      "term": 10,
+      "interpretation": "龙门阵指代复杂的大型布局，摆龙门阵意为铺展开来讲事情",
+      "scope": "民间俗说",
+      "is_common": false,
+      "contributed_by": "赵叔叔",
+      "role": "elder",
+      "created_at": "2025-06-10T19:30:00Z"
+    }
+  }
+]
