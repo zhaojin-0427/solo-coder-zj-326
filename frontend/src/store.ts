@@ -13,6 +13,10 @@ interface AppStore {
   loading: boolean;
   error: string | null;
 
+  pronunciationFilterTermId: number | undefined;
+  annotationFilterTermId: number | undefined;
+  versionFilterTermId: number | undefined;
+
   fetchTerms: (params?: Record<string, string>) => Promise<void>;
   fetchTerm: (id: number) => Promise<void>;
   createTerm: (data: Partial<Term>) => Promise<void>;
@@ -49,6 +53,9 @@ export const useStore = create<AppStore>((set, get) => ({
   statistics: null,
   loading: false,
   error: null,
+  pronunciationFilterTermId: undefined,
+  annotationFilterTermId: undefined,
+  versionFilterTermId: undefined,
 
   fetchTerms: async (params) => {
     set({ loading: true, error: null });
@@ -101,7 +108,7 @@ export const useStore = create<AppStore>((set, get) => ({
   },
 
   fetchPronunciations: async (termId) => {
-    set({ loading: true, error: null });
+    set({ loading: true, error: null, pronunciationFilterTermId: termId });
     try {
       const params = termId ? { term: String(termId) } : undefined;
       const res = await api.pronunciations.list(params);
@@ -116,7 +123,8 @@ export const useStore = create<AppStore>((set, get) => ({
     try {
       await api.pronunciations.create(data);
       if (data.term) await get().fetchTerm(data.term);
-      await get().fetchPronunciations(data.term);
+      await get().fetchPronunciations(get().pronunciationFilterTermId);
+      await get().fetchTerms();
     } catch (e: unknown) {
       set({ error: (e as Error).message, loading: false });
     }
@@ -127,7 +135,8 @@ export const useStore = create<AppStore>((set, get) => ({
     try {
       await api.pronunciations.update(id, data);
       if (data.term) await get().fetchTerm(data.term);
-      await get().fetchPronunciations(data.term);
+      await get().fetchPronunciations(get().pronunciationFilterTermId);
+      await get().fetchTerms();
     } catch (e: unknown) {
       set({ error: (e as Error).message, loading: false });
     }
@@ -139,14 +148,15 @@ export const useStore = create<AppStore>((set, get) => ({
       const pro = get().pronunciations.find((p) => p.id === id);
       await api.pronunciations.delete(id);
       if (pro) await get().fetchTerm(pro.term);
-      await get().fetchPronunciations(pro?.term);
+      await get().fetchPronunciations(get().pronunciationFilterTermId);
+      await get().fetchTerms();
     } catch (e: unknown) {
       set({ error: (e as Error).message, loading: false });
     }
   },
 
   fetchAnnotations: async (termId) => {
-    set({ loading: true, error: null });
+    set({ loading: true, error: null, annotationFilterTermId: termId });
     try {
       const params = termId ? { term: String(termId) } : undefined;
       const res = await api.annotations.list(params);
@@ -161,7 +171,8 @@ export const useStore = create<AppStore>((set, get) => ({
     try {
       await api.annotations.create(data);
       if (data.term) await get().fetchTerm(data.term);
-      await get().fetchAnnotations(data.term);
+      await get().fetchAnnotations(get().annotationFilterTermId);
+      await get().fetchTerms();
     } catch (e: unknown) {
       set({ error: (e as Error).message, loading: false });
     }
@@ -172,7 +183,8 @@ export const useStore = create<AppStore>((set, get) => ({
     try {
       await api.annotations.update(id, data);
       if (data.term) await get().fetchTerm(data.term);
-      await get().fetchAnnotations(data.term);
+      await get().fetchAnnotations(get().annotationFilterTermId);
+      await get().fetchTerms();
     } catch (e: unknown) {
       set({ error: (e as Error).message, loading: false });
     }
@@ -184,14 +196,15 @@ export const useStore = create<AppStore>((set, get) => ({
       const ann = get().annotations.find((a) => a.id === id);
       await api.annotations.delete(id);
       if (ann) await get().fetchTerm(ann.term);
-      await get().fetchAnnotations(ann?.term);
+      await get().fetchAnnotations(get().annotationFilterTermId);
+      await get().fetchTerms();
     } catch (e: unknown) {
       set({ error: (e as Error).message, loading: false });
     }
   },
 
   fetchVersions: async (termId) => {
-    set({ loading: true, error: null });
+    set({ loading: true, error: null, versionFilterTermId: termId });
     try {
       const params = termId ? { term: String(termId) } : undefined;
       const res = await api.versions.list(params);
@@ -206,7 +219,8 @@ export const useStore = create<AppStore>((set, get) => ({
     try {
       await api.versions.create(data);
       if (data.term) await get().fetchTerm(data.term);
-      await get().fetchVersions(data.term);
+      await get().fetchVersions(get().versionFilterTermId);
+      await get().fetchTerms();
     } catch (e: unknown) {
       set({ error: (e as Error).message, loading: false });
     }
@@ -217,7 +231,8 @@ export const useStore = create<AppStore>((set, get) => ({
     try {
       await api.versions.update(id, data);
       if (data.term) await get().fetchTerm(data.term);
-      await get().fetchVersions(data.term);
+      await get().fetchVersions(get().versionFilterTermId);
+      await get().fetchTerms();
     } catch (e: unknown) {
       set({ error: (e as Error).message, loading: false });
     }
@@ -229,7 +244,8 @@ export const useStore = create<AppStore>((set, get) => ({
       const ver = get().versions.find((v) => v.id === id);
       await api.versions.delete(id);
       if (ver) await get().fetchTerm(ver.term);
-      await get().fetchVersions(ver?.term);
+      await get().fetchVersions(get().versionFilterTermId);
+      await get().fetchTerms();
     } catch (e: unknown) {
       set({ error: (e as Error).message, loading: false });
     }
