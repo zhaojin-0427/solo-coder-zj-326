@@ -1,5 +1,5 @@
 import { create } from 'zustand';
-import type { Term, TermDetail, Pronunciation, Annotation, Version, Statistics } from '@/types';
+import type { Term, TermDetail, Pronunciation, Annotation, Version, Statistics, Story, StoryDetail, StoryRevision } from '@/types';
 import { api } from '@/api';
 
 const DEFAULT_PAGE_SIZE = 10;
@@ -28,6 +28,14 @@ interface AppStore {
   versions: Version[];
   versionsPagination: PaginationState;
   versionsFilterParams: Record<string, string>;
+
+  stories: Story[];
+  storiesPagination: PaginationState;
+  storiesFilterParams: Record<string, string>;
+  currentStory: StoryDetail | null;
+
+  storyRevisions: StoryRevision[];
+  storyRevisionsPagination: PaginationState;
 
   statistics: Statistics | null;
   loading: boolean;
@@ -58,6 +66,16 @@ interface AppStore {
   createVersion: (data: Partial<Version>) => Promise<void>;
   updateVersion: (id: number, data: Partial<Version>) => Promise<void>;
   deleteVersion: (id: number) => Promise<void>;
+
+  fetchStories: (params?: Record<string, string>, resetPage?: boolean) => Promise<void>;
+  setStoriesPage: (page: number) => Promise<void>;
+  fetchStory: (id: number) => Promise<void>;
+  createStory: (data: Partial<Story> & { related_terms?: number[] }) => Promise<void>;
+  updateStory: (id: number, data: Partial<Story> & { related_terms?: number[] }) => Promise<void>;
+  deleteStory: (id: number) => Promise<void>;
+
+  createStoryRevision: (data: Partial<StoryRevision>) => Promise<void>;
+  fetchStoryRevisions: (storyId: number) => Promise<void>;
 
   fetchStatistics: () => Promise<void>;
 
@@ -93,6 +111,14 @@ export const useStore = create<AppStore>((set, get) => ({
   versions: [],
   versionsPagination: { page: 1, pageSize: DEFAULT_PAGE_SIZE, total: 0 },
   versionsFilterParams: {},
+
+  stories: [],
+  storiesPagination: { page: 1, pageSize: DEFAULT_PAGE_SIZE, total: 0 },
+  storiesFilterParams: {},
+  currentStory: null,
+
+  storyRevisions: [],
+  storyRevisionsPagination: { page: 1, pageSize: DEFAULT_PAGE_SIZE, total: 0 },
 
   statistics: null,
   loading: false,
@@ -491,6 +517,126 @@ export const useStore = create<AppStore>((set, get) => ({
     try {
       const stats = await api.statistics.get();
       set({ statistics: stats, loading: false });
+    } catch (e: unknown) {
+      set({ error: (e as Error).message, loading: false });
+    }
+  },
+
+  fetchStories: async (params, resetPage = true) => {
+    set({ loading: true, error: null });
+    try {
+      const filterParams = params ?? get().storiesFilterParams;
+      const { page, pageSize } = get().storiesPagination;
+      const currentPage = resetPage ? 1 : page;
+      const queryParams = buildParamsWithPagination(filterParams, currentPage, pageSize);
+      const res = await api.stories.list(queryParams);
+      set({
+        stories: res.results,
+        storiesPagination: { page: currentPage, pageSize, total: res.count },
+        storiesFilterParams: filterParams,
+        loading: false,
+      });
+    } catch (e: unknown) {
+      set({ error: (e as Error).message, loading: false });
+    }
+  },
+
+  setStoriesPage: async (page: number) => {
+    set({ loading: true, error: null });
+    try {
+      const { storiesFilterParams, storiesPagination } = get();
+      const queryParams = buildParamsWithPagination(storiesFilterParams, page, storiesPagination.pageSize);
+      const res = await api.stories.list(queryParams);
+      set({
+        stories: res.results,
+        storiesPagination: { ...storiesPagination, page, total: res.count },
+        loading: false,
+      });
+    } catch (e: unknown) {
+      set({ error: (e as Error).message, loading: false });
+    }
+  },
+
+  fetchStory: async (id) => {
+    set({ loading: true, error: null });
+    try {
+      const story = await api.stories.get(id);
+      set({ currentStory: story, loading: false });
+    } catch (e: unknown) {
+      set({ error: (e as Error).message, loading: false });
+    }
+  },
+
+  createStory: async (data) => {
+    set({ loading: true, error: null });
+    try {
+      await api.stories.create(data);
+      const { storiesFilterParams } = get();
+      await get().fetchStories(storiesFilterParams, false);
+    } catch (e: unknown) {
+      set({ error: (e as Error).message, loading: false });
+    }
+  },
+
+  updateStory: async (id, data) => {
+    set({ loading: true, error: null });
+    try {
+      await api.stories.update(id, data);
+      const { storiesFilterParams } = get();
+      await get().fetchStories(storiesFilterParams, false);
+      if (get().currentStory?.id === id) {
+        await get().fetchStory(id);
+      }
+    } catch (e: unknown) {
+      set({ error: (e as Error).message, loading: false });
+    }
+  },
+
+  deleteStory: async (id) => {
+    set({ loading: true, error: null });
+    try {
+      await api.stories.delete(id);
+      const { storiesFilterParams, storiesPagination } = get();
+      let { page } = storiesPagination;
+      const queryParams = buildParamsWithPagination(storiesFilterParams, page, storiesPagination.pageSize);
+      const res = await api.stories.list(queryParams);
+      if (res.results.length === 0 && page > 1) {
+        page -= 1;
+        const prevParams = buildParamsWithPagination(storiesFilterParams, page, storiesPagination.pageSize);
+        const prevRes = await api.stories.list(prevParams);
+        set({
+          stories: prevRes.results,
+          storiesPagination: { ...storiesPagination, page, total: prevRes.count },
+          loading: false,
+        });
+      } else {
+        set({
+          stories: res.results,
+          storiesPagination: { ...storiesPagination, total: res.count },
+          loading: false,
+        });
+      }
+    } catch (e: unknown) {
+      set({ error: (e as Error).message, loading: false });
+    }
+  },
+
+  createStoryRevision: async (data) => {
+    set({ loading: true, error: null });
+    try {
+      await api.storyRevisions.create(data);
+      if (data.story) await get().fetchStory(data.story);
+      set({ loading: false });
+    } catch (e: unknown) {
+      set({ error: (e as Error).message, loading: false });
+    }
+  },
+
+  fetchStoryRevisions: async (storyId: number) => {
+    set({ loading: true, error: null });
+    try {
+      const res = await api.storyRevisions.list({ story: String(storyId), page_size: '1000' });
+      set({ storyRevisions: res.results, loading: false });
     } catch (e: unknown) {
       set({ error: (e as Error).message, loading: false });
     }

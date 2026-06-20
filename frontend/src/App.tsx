@@ -3,6 +3,8 @@ import Layout from '@/components/Layout';
 import Collection from '@/pages/Collection';
 import Pronunciation from '@/pages/Pronunciation';
 import Annotation from '@/pages/Annotation';
+import Stories from '@/pages/Stories';
+import StoryDetail from '@/pages/StoryDetail';
 import Collaboration from '@/pages/Collaboration';
 import Statistics from '@/pages/Statistics';
 
@@ -15,6 +17,8 @@ export default function App() {
           <Route path="collection" element={<Collection />} />
           <Route path="pronunciation" element={<Pronunciation />} />
           <Route path="annotation" element={<Annotation />} />
+          <Route path="stories" element={<Stories />} />
+          <Route path="stories/:id" element={<StoryDetail />} />
           <Route path="collaboration" element={<Collaboration />} />
           <Route path="statistics" element={<Statistics />} />
         </Route>
