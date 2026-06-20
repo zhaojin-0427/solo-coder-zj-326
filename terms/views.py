@@ -30,6 +30,15 @@ class LocationViewSet(viewsets.ModelViewSet):
         family_member = self.request.query_params.get('family_member')
         if family_member:
             queryset = queryset.filter(Q(family_members__icontains=family_member) | Q(stories__family_members__icontains=family_member)).distinct()
+        narrator = self.request.query_params.get('narrator')
+        if narrator:
+            queryset = queryset.filter(stories__narrator__icontains=narrator).distinct()
+        term_category = self.request.query_params.get('term_category')
+        if term_category:
+            queryset = queryset.filter(terms__category=term_category).distinct()
+        story_tag = self.request.query_params.get('story_tag')
+        if story_tag:
+            queryset = queryset.filter(stories__tags__icontains=story_tag).distinct()
         return queryset
 
     def destroy(self, request, *args, **kwargs):
@@ -70,10 +79,33 @@ class LocationFiltersAPIView(APIView):
                 if m:
                     all_members.add(m)
 
+        narrators = list(
+            Story.objects.values_list('narrator', flat=True)
+            .exclude(narrator='')
+            .distinct()
+            .order_by('narrator')
+        )
+
+        term_categories = list(
+            Term.objects.values_list('category', flat=True)
+            .exclude(category='')
+            .distinct()
+            .order_by('category')
+        )
+
+        all_story_tags = set()
+        for story in Story.objects.all():
+            for tag in (story.tags or []):
+                if tag:
+                    all_story_tags.add(tag)
+
         return Response({
             'regions': regions,
             'eras': sorted(all_eras),
             'family_members': sorted(all_members),
+            'narrators': narrators,
+            'term_categories': term_categories,
+            'story_tags': sorted(all_story_tags),
         })
 
 

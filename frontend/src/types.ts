@@ -208,6 +208,9 @@ export interface LocationFilters {
   regions: string[];
   eras: string[];
   family_members: string[];
+  narrators: string[];
+  term_categories: string[];
+  story_tags: string[];
 }
 
 export interface MigrationMapStatistics {

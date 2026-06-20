@@ -505,8 +505,11 @@ export const useStore = create<AppStore>((set, get) => ({
       await get().fetchLocations();
       await get().fetchAllLocations();
       if (get().currentLocation?.id === id) set({ currentLocation: null });
+      set({ loading: false });
     } catch (e: unknown) {
-      set({ error: (e as Error).message, loading: false });
+      const errMsg = (e as Error).message;
+      set({ error: errMsg, loading: false });
+      throw e;
     }
   },
 

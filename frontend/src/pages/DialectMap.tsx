@@ -1,8 +1,8 @@
 import { useState, useEffect, useCallback } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useStore } from '@/store';
 import type { Location } from '@/types';
-import { ERA_OPTIONS } from '@/types';
+import { ERA_OPTIONS, CATEGORY_OPTIONS } from '@/types';
 import Pagination from '@/components/Pagination';
 import {
   MapPin,
@@ -21,6 +21,7 @@ import {
   Navigation,
   History,
   Tag,
+  User,
 } from 'lucide-react';
 
 const EMPTY_FORM = {
@@ -36,6 +37,7 @@ const EMPTY_FORM = {
 
 export default function DialectMap() {
   const navigate = useNavigate();
+  const [searchParams, setSearchParams] = useSearchParams();
   const {
     locations,
     locationsPagination,
@@ -43,6 +45,7 @@ export default function DialectMap() {
     allTerms,
     locationFilters,
     loading,
+    error,
     fetchLocations,
     setLocationsPage,
     fetchLocation,
@@ -53,12 +56,16 @@ export default function DialectMap() {
     fetchAllTerms,
     fetchAllLocations,
     allLocations,
+    clearError,
   } = useStore();
 
   const [search, setSearch] = useState('');
   const [filterRegion, setFilterRegion] = useState('');
   const [filterEra, setFilterEra] = useState('');
   const [filterFamilyMember, setFilterFamilyMember] = useState('');
+  const [filterNarrator, setFilterNarrator] = useState('');
+  const [filterTermCategory, setFilterTermCategory] = useState('');
+  const [filterStoryTag, setFilterStoryTag] = useState('');
   const [showForm, setShowForm] = useState(false);
   const [editingId, setEditingId] = useState<number | null>(null);
   const [form, setForm] = useState(EMPTY_FORM);
@@ -79,16 +86,56 @@ export default function DialectMap() {
     if (filterRegion) params.region = filterRegion;
     if (filterEra) params.era = filterEra;
     if (filterFamilyMember) params.family_member = filterFamilyMember;
+    if (filterNarrator) params.narrator = filterNarrator;
+    if (filterTermCategory) params.term_category = filterTermCategory;
+    if (filterStoryTag) params.story_tag = filterStoryTag;
     fetchLocations(params, true);
-  }, [search, filterRegion, filterEra, filterFamilyMember, fetchLocations]);
+  }, [search, filterRegion, filterEra, filterFamilyMember, filterNarrator, filterTermCategory, filterStoryTag, fetchLocations]);
+
+  useEffect(() => {
+    const locationParam = searchParams.get('location');
+    if (locationParam && !showDetail) {
+      const locId = parseInt(locationParam, 10);
+      if (!isNaN(locId)) {
+        openDetail(locId);
+      }
+    }
+  }, [searchParams]);
+
+  useEffect(() => {
+    if (error) {
+      setDeleteError(error);
+      clearError();
+    }
+  }, [error, clearError]);
 
   const openDetail = async (id: number) => {
     await fetchLocation(id);
     setShowDetail(true);
+    const params = new URLSearchParams(searchParams);
+    params.set('location', String(id));
+    setSearchParams(params, { replace: true });
   };
 
   const closeDetail = () => {
     setShowDetail(false);
+    const params = new URLSearchParams(searchParams);
+    params.delete('location');
+    setSearchParams(params, { replace: true });
+  };
+
+  const handlePageChange = (page: number) => {
+    setLocationsPage(page);
+    const params: Record<string, string> = {};
+    if (search) params.search = search;
+    if (filterRegion) params.region = filterRegion;
+    if (filterEra) params.era = filterEra;
+    if (filterFamilyMember) params.family_member = filterFamilyMember;
+    if (filterNarrator) params.narrator = filterNarrator;
+    if (filterTermCategory) params.term_category = filterTermCategory;
+    if (filterStoryTag) params.story_tag = filterStoryTag;
+    params.page = String(page);
+    fetchLocations(params, false);
   };
 
   const openCreateForm = () => {
@@ -138,6 +185,7 @@ export default function DialectMap() {
   };
 
   const handleDelete = async (id: number) => {
+    setDeleteError('');
     try {
       await deleteLocation(id);
       setDeleteConfirmId(null);
@@ -147,26 +195,50 @@ export default function DialectMap() {
       }
     } catch (e: unknown) {
       const err = e as Error;
+      let errorMsg = '删除失败，该地点仍有关联内容';
       try {
         const parsed = JSON.parse(err.message);
         if (parsed.detail) {
-          setDeleteError(parsed.detail);
-        } else {
-          setDeleteError('删除失败，该地点仍有关联内容');
+          errorMsg = parsed.detail;
+          if (parsed.term_count != null && parsed.story_count != null) {
+            errorMsg = `该地点仍关联 ${parsed.term_count} 个词条和 ${parsed.story_count} 个故事，无法删除`;
+          }
         }
       } catch {
-        setDeleteError('删除失败，该地点仍有关联内容');
-      }
+          errorMsg = err.message || '删除失败，该地点仍有关联内容';
+        }
+      setDeleteError(errorMsg);
     }
   };
 
-  const mapLocations = allLocations.filter(
-    (loc) => loc.latitude != null && loc.longitude != null
+  const filteredLocations = locations.length > 0 ? locations : allLocations;
+
+  const activeFilters = { search, filterRegion, filterEra, filterFamilyMember, filterNarrator, filterTermCategory, filterStoryTag };
+
+  const applyFiltersToList = (list: Location[]) => {
+    return list.filter((loc) => {
+      if (search && !loc.name.includes(search) && !loc.region?.includes(search) && !loc.description?.includes(search)) return false;
+      if (filterRegion && loc.region !== filterRegion) return false;
+      if (filterEra) {
+        const matchEraStart = loc.era_start === filterEra;
+        const matchEraEnd = loc.era_end === filterEra;
+        const matchEraRange = loc.era_start && loc.era_end && loc.era_start <= filterEra && loc.era_end >= filterEra;
+        if (!matchEraStart && !matchEraEnd && !matchEraRange) return false;
+      }
+      if (filterFamilyMember && !loc.family_members?.includes(filterFamilyMember)) return false;
+      return true;
+    });
+  };
+
+  const mapLocations = applyFiltersToList(
+    allLocations.filter((loc) => loc.latitude != null && loc.longitude != null)
   );
 
-  const timelineLocations = allLocations
-    .filter((loc) => loc.era_start || loc.era_end)
-    .sort((a, b) => (a.era_start || '').localeCompare(b.era_start || '', 'zh-CN'));
+  const timelineLocations = applyFiltersToList(
+    allLocations
+      .filter((loc) => loc.era_start || loc.era_end)
+      .sort((a, b) => (a.era_start || '').localeCompare(b.era_start || '', 'zh-CN'))
+  );
 
   const mapMinLat = mapLocations.length > 0 ? Math.min(...mapLocations.map((l) => l.latitude!)) - 2 : 20;
   const mapMaxLat = mapLocations.length > 0 ? Math.max(...mapLocations.map((l) => l.latitude!)) + 2 : 55;
@@ -192,6 +264,9 @@ export default function DialectMap() {
   const allRegions = locationFilters?.regions ?? [];
   const allEras = locationFilters?.eras ?? [];
   const allFamilyMembers = locationFilters?.family_members ?? [];
+  const allNarrators = locationFilters?.narrators ?? [];
+  const allTermCategories = locationFilters?.term_categories ?? [];
+  const allStoryTags = locationFilters?.story_tags ?? [];
 
   const eraGroups: Record<string, Location[]> = {};
   timelineLocations.forEach((loc) => {
@@ -248,6 +323,24 @@ export default function DialectMap() {
             <option value="">全部家庭成员</option>
             {allFamilyMembers.map((m) => (
               <option key={m} value={m}>{m}</option>
+            ))}
+          </select>
+          <select className="input-field w-auto min-w-[140px]" value={filterNarrator} onChange={(e) => setFilterNarrator(e.target.value)}>
+            <option value="">全部讲述人</option>
+            {allNarrators.map((n) => (
+              <option key={n} value={n}>{n}</option>
+            ))}
+          </select>
+          <select className="input-field w-auto min-w-[140px]" value={filterTermCategory} onChange={(e) => setFilterTermCategory(e.target.value)}>
+            <option value="">全部词条分类</option>
+            {(allTermCategories.length > 0 ? allTermCategories : CATEGORY_OPTIONS).map((c) => (
+              <option key={c} value={c}>{c}</option>
+            ))}
+          </select>
+          <select className="input-field w-auto min-w-[140px]" value={filterStoryTag} onChange={(e) => setFilterStoryTag(e.target.value)}>
+            <option value="">全部故事标签</option>
+            {allStoryTags.map((t) => (
+              <option key={t} value={t}>{t}</option>
             ))}
           </select>
         </div>
@@ -483,7 +576,7 @@ export default function DialectMap() {
                 page={locationsPagination.page}
                 pageSize={locationsPagination.pageSize}
                 total={locationsPagination.total}
-                onPageChange={setLocationsPage}
+                onPageChange={handlePageChange}
               />
             </>
           )}
