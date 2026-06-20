@@ -1,5 +1,5 @@
 from rest_framework import serializers
-from .models import Location, Term, Pronunciation, Annotation, Version, Story, StoryRevision
+from .models import Location, Term, Pronunciation, Annotation, Version, Story, StoryRevision, HeritageTask, TaskStatusLog
 
 
 class LocationSerializer(serializers.ModelSerializer):
@@ -22,6 +22,8 @@ class LocationDetailSerializer(LocationSerializer):
     representative_story = serializers.SerializerMethodField()
     related_family_members = serializers.SerializerMethodField()
     recent_revisions = serializers.SerializerMethodField()
+    related_task_count = serializers.SerializerMethodField()
+    latest_task_status = serializers.SerializerMethodField()
 
     def get_top_terms(self, obj):
         top = obj.terms.all()[:10]
@@ -45,6 +47,15 @@ class LocationDetailSerializer(LocationSerializer):
         story_ids = obj.stories.values_list('id', flat=True)
         revisions = StoryRevision.objects.filter(story_id__in=story_ids).order_by('-created_at')[:5]
         return [{'id': r.id, 'story': r.story_id, 'change_note': r.change_note, 'contributed_by': r.contributed_by, 'created_at': r.created_at.isoformat() if r.created_at else None} for r in revisions]
+
+    def get_related_task_count(self, obj):
+        return obj.heritage_tasks.count()
+
+    def get_latest_task_status(self, obj):
+        latest = obj.heritage_tasks.order_by('-updated_at').first()
+        if latest:
+            return {'id': latest.id, 'title': latest.title, 'status': latest.status}
+        return None
 
     def create(self, validated_data):
         location = Location.objects.create(**validated_data)
@@ -130,6 +141,17 @@ class TermDetailSerializer(TermSerializer):
     annotations = AnnotationSerializer(many=True, read_only=True)
     versions = VersionSerializer(many=True, read_only=True)
     locations = TermLocationSerializer(many=True, read_only=True)
+    related_task_count = serializers.SerializerMethodField()
+    latest_task_status = serializers.SerializerMethodField()
+
+    def get_related_task_count(self, obj):
+        return obj.heritage_tasks.count()
+
+    def get_latest_task_status(self, obj):
+        latest = obj.heritage_tasks.order_by('-updated_at').first()
+        if latest:
+            return {'id': latest.id, 'title': latest.title, 'status': latest.status}
+        return None
 
 
 class StoryRevisionSerializer(serializers.ModelSerializer):
@@ -211,3 +233,98 @@ class StoryDetailSerializer(StorySerializer):
     related_terms = RelatedTermSerializer(many=True, read_only=True)
     revisions = StoryRevisionSerializer(many=True, read_only=True)
     locations = TermLocationSerializer(many=True, read_only=True)
+    related_task_count = serializers.SerializerMethodField()
+    latest_task_status = serializers.SerializerMethodField()
+
+    def get_related_task_count(self, obj):
+        return obj.heritage_tasks.count()
+
+    def get_latest_task_status(self, obj):
+        latest = obj.heritage_tasks.order_by('-updated_at').first()
+        if latest:
+            return {'id': latest.id, 'title': latest.title, 'status': latest.status}
+        return None
+
+
+class TaskStatusLogSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = TaskStatusLog
+        fields = '__all__'
+
+
+class HeritageTaskSerializer(serializers.ModelSerializer):
+    related_terms_count = serializers.SerializerMethodField()
+    related_stories_count = serializers.SerializerMethodField()
+    related_locations_count = serializers.SerializerMethodField()
+
+    class Meta:
+        model = HeritageTask
+        fields = '__all__'
+
+    def get_related_terms_count(self, obj):
+        return obj.related_terms.count()
+
+    def get_related_stories_count(self, obj):
+        return obj.related_stories.count()
+
+    def get_related_locations_count(self, obj):
+        return obj.related_locations.count()
+
+    def create(self, validated_data):
+        related_term_ids = self.initial_data.get('related_terms', [])
+        if isinstance(related_term_ids, str):
+            related_term_ids = [int(x) for x in related_term_ids.split(',') if x.strip()]
+        elif related_term_ids is None:
+            related_term_ids = []
+        related_story_ids = self.initial_data.get('related_stories', [])
+        if isinstance(related_story_ids, str):
+            related_story_ids = [int(x) for x in related_story_ids.split(',') if x.strip()]
+        elif related_story_ids is None:
+            related_story_ids = []
+        related_location_ids = self.initial_data.get('related_locations', [])
+        if isinstance(related_location_ids, str):
+            related_location_ids = [int(x) for x in related_location_ids.split(',') if x.strip()]
+        elif related_location_ids is None:
+            related_location_ids = []
+        validated_data.pop('related_terms', None)
+        validated_data.pop('related_stories', None)
+        validated_data.pop('related_locations', None)
+        task = HeritageTask.objects.create(**validated_data)
+        if related_term_ids:
+            task.related_terms.set(related_term_ids)
+        if related_story_ids:
+            task.related_stories.set(related_story_ids)
+        if related_location_ids:
+            task.related_locations.set(related_location_ids)
+        return task
+
+    def update(self, instance, validated_data):
+        related_term_ids = self.initial_data.get('related_terms', None)
+        if related_term_ids is not None:
+            if isinstance(related_term_ids, str):
+                related_term_ids = [int(x) for x in related_term_ids.split(',') if x.strip()]
+            elif related_term_ids is None:
+                related_term_ids = []
+            instance.related_terms.set(related_term_ids)
+        related_story_ids = self.initial_data.get('related_stories', None)
+        if related_story_ids is not None:
+            if isinstance(related_story_ids, str):
+                related_story_ids = [int(x) for x in related_story_ids.split(',') if x.strip()]
+            elif related_story_ids is None:
+                related_story_ids = []
+            instance.related_stories.set(related_story_ids)
+        related_location_ids = self.initial_data.get('related_locations', None)
+        if related_location_ids is not None:
+            if isinstance(related_location_ids, str):
+                related_location_ids = [int(x) for x in related_location_ids.split(',') if x.strip()]
+            elif related_location_ids is None:
+                related_location_ids = []
+            instance.related_locations.set(related_location_ids)
+        validated_data.pop('related_terms', None)
+        validated_data.pop('related_stories', None)
+        validated_data.pop('related_locations', None)
+        return super().update(instance, validated_data)
+
+
+class HeritageTaskDetailSerializer(HeritageTaskSerializer):
+    status_logs = TaskStatusLogSerializer(many=True, read_only=True)

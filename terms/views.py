@@ -1,13 +1,15 @@
-from django.db.models import Count, Q
+from django.db.models import Count, Q, Avg
 from rest_framework import viewsets, status
 from rest_framework.views import APIView
 from rest_framework.response import Response
-from .models import Location, Term, Pronunciation, Annotation, Version, Story, StoryRevision
+from rest_framework.decorators import action
+from .models import Location, Term, Pronunciation, Annotation, Version, Story, StoryRevision, HeritageTask, TaskStatusLog
 from .serializers import (
     LocationSerializer, LocationDetailSerializer,
     TermSerializer, TermDetailSerializer, PronunciationSerializer,
     AnnotationSerializer, VersionSerializer, StorySerializer,
     StoryDetailSerializer, StoryRevisionSerializer,
+    HeritageTaskSerializer, HeritageTaskDetailSerializer, TaskStatusLogSerializer,
 )
 
 
@@ -181,6 +183,80 @@ class StoryRevisionViewSet(viewsets.ModelViewSet):
     filterset_fields = ['story', 'role']
 
 
+class HeritageTaskViewSet(viewsets.ModelViewSet):
+    queryset = HeritageTask.objects.all()
+    serializer_class = HeritageTaskSerializer
+    filterset_fields = ['task_type', 'status', 'priority', 'assignee']
+    search_fields = ['title', 'description']
+
+    def get_serializer_class(self):
+        if self.action == 'retrieve':
+            return HeritageTaskDetailSerializer
+        return HeritageTaskSerializer
+
+    def get_queryset(self):
+        queryset = super().get_queryset()
+        related_content_type = self.request.query_params.get('related_content_type')
+        if related_content_type == 'term':
+            queryset = queryset.filter(related_terms__isnull=False).distinct()
+        elif related_content_type == 'story':
+            queryset = queryset.filter(related_stories__isnull=False).distinct()
+        elif related_content_type == 'location':
+            queryset = queryset.filter(related_locations__isnull=False).distinct()
+        due_date_from = self.request.query_params.get('due_date_from')
+        if due_date_from:
+            queryset = queryset.filter(due_date__gte=due_date_from)
+        due_date_to = self.request.query_params.get('due_date_to')
+        if due_date_to:
+            queryset = queryset.filter(due_date__lte=due_date_to)
+        return queryset
+
+    @action(detail=True, methods=['post'])
+    def change_status(self, request, pk=None):
+        task = self.get_object()
+        to_status = request.data.get('to_status')
+        comment = request.data.get('comment', '')
+        rework_reason = request.data.get('rework_reason', '')
+        is_final_confirmation = request.data.get('is_final_confirmation', False)
+        operated_by = request.data.get('operated_by', '')
+        role = request.data.get('role', 'youth')
+        if to_status not in dict(HeritageTask.STATUS_CHOICES):
+            return Response({'detail': '无效的状态'}, status=status.HTTP_400_BAD_REQUEST)
+        from_status = task.status
+        TaskStatusLog.objects.create(
+            task=task,
+            from_status=from_status,
+            to_status=to_status,
+            comment=comment,
+            rework_reason=rework_reason,
+            is_final_confirmation=is_final_confirmation,
+            operated_by=operated_by,
+            role=role,
+        )
+        task.status = to_status
+        task.save()
+        return Response(HeritageTaskDetailSerializer(task).data)
+
+
+class HeritageTaskFiltersAPIView(APIView):
+    def get(self, request):
+        assignees = list(
+            HeritageTask.objects.values_list('assignee', flat=True)
+            .exclude(assignee='')
+            .distinct()
+            .order_by('assignee')
+        )
+        task_types = list(
+            HeritageTask.objects.values_list('task_type', flat=True)
+            .distinct()
+            .order_by('task_type')
+        )
+        return Response({
+            'assignees': assignees,
+            'task_types': task_types,
+        })
+
+
 class StoryFiltersAPIView(APIView):
     def get(self, request):
         narrators = list(
@@ -348,6 +424,68 @@ class StatisticsAPIView(APIView):
             'total_content_count': total_content,
         }
 
+        from datetime import date, timedelta
+        total_tasks = HeritageTask.objects.count()
+        overdue_tasks = HeritageTask.objects.filter(
+            due_date__lt=date.today()
+        ).exclude(status__in=['completed', 'archived']).count()
+        pending_elder_confirm = HeritageTask.objects.filter(status='pending_elder_confirm').count()
+
+        task_type_distribution = {
+            item['task_type']: item['count']
+            for item in HeritageTask.objects.values('task_type').annotate(count=Count('id')).order_by('-count')
+            if item['task_type']
+        }
+
+        assignee_completion = {}
+        for task in HeritageTask.objects.exclude(assignee=''):
+            if task.assignee not in assignee_completion:
+                assignee_completion[task.assignee] = {'total': 0, 'completed': 0}
+            assignee_completion[task.assignee]['total'] += 1
+            if task.status == 'completed':
+                assignee_completion[task.assignee]['completed'] += 1
+        assignee_completion_rate = {
+            name: round(data['completed'] / data['total'], 4) if data['total'] > 0 else 0
+            for name, data in assignee_completion.items()
+        }
+
+        confirmation_logs = TaskStatusLog.objects.filter(
+            to_status='pending_elder_confirm'
+        ).exclude(from_status='')
+        confirmation_times = []
+        for log in confirmation_logs:
+            next_log = TaskStatusLog.objects.filter(
+                task=log.task,
+                created_at__gt=log.created_at,
+            ).order_by('created_at').first()
+            if next_log:
+                delta = next_log.created_at - log.created_at
+                confirmation_times.append(delta.total_seconds() / 3600)
+        avg_confirmation_hours = round(sum(confirmation_times) / len(confirmation_times), 1) if confirmation_times else 0
+
+        rework_reasons = list(
+            TaskStatusLog.objects.filter(to_status='needs_rework')
+            .exclude(rework_reason='')
+            .values_list('rework_reason', flat=True)
+        )
+        rework_reason_counts = {}
+        for reason in rework_reasons:
+            rework_reason_counts[reason] = rework_reason_counts.get(reason, 0) + 1
+        top_rework_reasons = sorted(rework_reason_counts.items(), key=lambda x: -x[1])[:5]
+        high_frequency_rework_reasons = [
+            {'reason': r, 'count': c} for r, c in top_rework_reasons
+        ]
+
+        heritage_task_statistics = {
+            'total_tasks': total_tasks,
+            'overdue_tasks': overdue_tasks,
+            'pending_elder_confirm': pending_elder_confirm,
+            'task_type_distribution': task_type_distribution,
+            'assignee_completion_rate': assignee_completion_rate,
+            'avg_confirmation_hours': avg_confirmation_hours,
+            'high_frequency_rework_reasons': high_frequency_rework_reasons,
+        }
+
         return Response({
             'category_distribution': category_distribution,
             'polysemy_count': {
@@ -360,4 +498,5 @@ class StatisticsAPIView(APIView):
             'overview': overview,
             'story_statistics': story_statistics,
             'migration_map_statistics': migration_map_statistics,
+            'heritage_task_statistics': heritage_task_statistics,
         })

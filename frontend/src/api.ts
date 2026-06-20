@@ -1,4 +1,4 @@
-import type { Term, TermDetail, Pronunciation, Annotation, Version, Statistics, PaginatedResponse, Story, StoryDetail, StoryRevision, StoryFilters, Location, LocationDetail, LocationFilters } from '@/types';
+import type { Term, TermDetail, Pronunciation, Annotation, Version, Statistics, PaginatedResponse, Story, StoryDetail, StoryRevision, StoryFilters, Location, LocationDetail, LocationFilters, HeritageTask, HeritageTaskDetail, HeritageTaskFilters } from '@/types';
 
 const BASE = '/api';
 
@@ -82,6 +82,19 @@ export const api = {
     update: (id: number, data: Partial<Location>) => request<Location>(`/locations/${id}/`, { method: 'PUT', body: JSON.stringify(data) }),
     delete: (id: number) => request<void>(`/locations/${id}/`, { method: 'DELETE' }),
     getFilters: () => request<LocationFilters>('/location-filters/'),
+  },
+  heritageTasks: {
+    list: (params?: Record<string, string>) => {
+      const qs = params ? '?' + new URLSearchParams(params).toString() : '';
+      return request<PaginatedResponse<HeritageTask>>(`/heritage-tasks/${qs}`);
+    },
+    get: (id: number) => request<HeritageTaskDetail>(`/heritage-tasks/${id}/`),
+    create: (data: Partial<HeritageTask> & { related_terms?: number[]; related_stories?: number[]; related_locations?: number[] }) => request<HeritageTask>('/heritage-tasks/', { method: 'POST', body: JSON.stringify(data) }),
+    update: (id: number, data: Partial<HeritageTask> & { related_terms?: number[]; related_stories?: number[]; related_locations?: number[] }) => request<HeritageTask>(`/heritage-tasks/${id}/`, { method: 'PUT', body: JSON.stringify(data) }),
+    delete: (id: number) => request<void>(`/heritage-tasks/${id}/`, { method: 'DELETE' }),
+    changeStatus: (id: number, data: { to_status: string; comment?: string; rework_reason?: string; is_final_confirmation?: boolean; operated_by?: string; role?: string }) =>
+      request<HeritageTaskDetail>(`/heritage-tasks/${id}/change_status/`, { method: 'POST', body: JSON.stringify(data) }),
+    getFilters: () => request<HeritageTaskFilters>('/heritage-task-filters/'),
   },
   statistics: {
     get: () => request<Statistics>('/statistics/'),

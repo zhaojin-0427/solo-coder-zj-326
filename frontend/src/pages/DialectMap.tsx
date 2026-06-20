@@ -2,7 +2,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useStore } from '@/store';
 import type { Location } from '@/types';
-import { ERA_OPTIONS, CATEGORY_OPTIONS } from '@/types';
+import { ERA_OPTIONS, CATEGORY_OPTIONS, HERITAGE_TASK_STATUS_MAP, HERITAGE_TASK_STATUS_BADGE } from '@/types';
 import Pagination from '@/components/Pagination';
 import {
   MapPin,
@@ -22,6 +22,7 @@ import {
   History,
   Tag,
   User,
+  ClipboardList,
 } from 'lucide-react';
 
 const EMPTY_FORM = {
@@ -807,6 +808,34 @@ export default function DialectMap() {
                         </div>
                       </div>
                     ))}
+                  </div>
+                </div>
+              )}
+
+              {(currentLocation.related_task_count ?? 0) > 0 && (
+                <div>
+                  <h4 className="text-sm font-medium text-ink-500 mb-2 flex items-center gap-1.5">
+                    <ClipboardList className="w-4 h-4" />
+                    关联传承任务
+                  </h4>
+                  <div className="bg-ochre-50 rounded-lg p-3">
+                    <div className="flex items-center justify-between mb-1">
+                      <span className="text-sm text-ink-700">共 {currentLocation.related_task_count} 个任务</span>
+                      {currentLocation.latest_task_status && (
+                        <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-medium ${HERITAGE_TASK_STATUS_BADGE[currentLocation.latest_task_status.status] || 'bg-cream-200 text-ink-600'}`}>
+                          {HERITAGE_TASK_STATUS_MAP[currentLocation.latest_task_status.status] || currentLocation.latest_task_status.status}
+                        </span>
+                      )}
+                    </div>
+                    {currentLocation.latest_task_status && (
+                      <p className="text-xs text-ink-500 truncate">{currentLocation.latest_task_status.title}</p>
+                    )}
+                    <button
+                      className="text-xs text-ochre-500 hover:text-ochre-600 mt-1 flex items-center gap-1"
+                      onClick={() => { closeDetail(); navigate('/heritage-tasks'); }}
+                    >
+                      查看全部任务 <ChevronRight className="w-3 h-3" />
+                    </button>
                   </div>
                 </div>
               )}

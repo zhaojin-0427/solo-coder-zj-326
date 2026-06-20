@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useStore } from '@/store';
 import type { Statistics } from '@/types';
-import { STATUS_MAP, STORY_STATUS_MAP } from '@/types';
+import { STATUS_MAP, STORY_STATUS_MAP, HERITAGE_TASK_TYPE_MAP, HERITAGE_TASK_STATUS_MAP } from '@/types';
 import {
   PieChart,
   Pie,
@@ -30,6 +30,11 @@ import {
   Link as LinkIcon,
   Calendar,
   MapPin,
+  ClipboardList,
+  AlertTriangle,
+  UserCheck,
+  RotateCcw,
+  Timer,
 } from 'lucide-react';
 
 const CHART_COLORS = ['#C8553D', '#2D6A4F', '#D4A373', '#E8B088', '#873424', '#245840', '#F2E8CF'];
@@ -735,6 +740,190 @@ export default function Statistics() {
                       </p>
                     </div>
                   </div>
+                </div>
+              </div>
+            </>
+          )}
+
+          {statistics.heritage_task_statistics && (
+            <>
+              <div className="border-t border-cream-200 pt-6">
+                <h2 className="section-title text-xl flex items-center gap-2 mb-6">
+                  <div className="w-8 h-8 rounded-lg bg-ochre-100 flex items-center justify-center">
+                    <ClipboardList className="w-4 h-4 text-ochre-600" />
+                  </div>
+                  传承任务统计
+                </h2>
+              </div>
+
+              <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
+                <div className="card p-5 flex flex-col items-start gap-3">
+                  <div className="w-10 h-10 rounded-xl flex items-center justify-center bg-ochre-50 text-ochre-500">
+                    <ClipboardList className="w-5 h-5" />
+                  </div>
+                  <div>
+                    <p className="text-xs text-ink-500 mb-0.5">任务总数</p>
+                    <p className="text-2xl font-bold text-ink-900 font-display">
+                      {statistics.heritage_task_statistics.total_tasks.toLocaleString()}
+                    </p>
+                  </div>
+                </div>
+                <div className="card p-5 flex flex-col items-start gap-3">
+                  <div className="w-10 h-10 rounded-xl flex items-center justify-center bg-red-50 text-red-500">
+                    <AlertTriangle className="w-5 h-5" />
+                  </div>
+                  <div>
+                    <p className="text-xs text-ink-500 mb-0.5">逾期任务</p>
+                    <p className="text-2xl font-bold text-ink-900 font-display">
+                      {statistics.heritage_task_statistics.overdue_tasks.toLocaleString()}
+                    </p>
+                  </div>
+                </div>
+                <div className="card p-5 flex flex-col items-start gap-3">
+                  <div className="w-10 h-10 rounded-xl flex items-center justify-center bg-amber-50 text-amber-600">
+                    <UserCheck className="w-5 h-5" />
+                  </div>
+                  <div>
+                    <p className="text-xs text-ink-500 mb-0.5">长辈待确认</p>
+                    <p className="text-2xl font-bold text-ink-900 font-display">
+                      {statistics.heritage_task_statistics.pending_elder_confirm.toLocaleString()}
+                    </p>
+                  </div>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                <div className="card p-6">
+                  <h3 className="section-title text-lg !mb-4 flex items-center gap-2">
+                    <TrendingUp className="w-5 h-5 text-ochre-500" />
+                    任务类型分布
+                  </h3>
+                  {Object.keys(statistics.heritage_task_statistics.task_type_distribution).length === 0 ? (
+                    <div className="text-center py-10 text-ink-400">
+                      <ClipboardList className="w-8 h-8 mx-auto mb-2 text-cream-400" />
+                      <p className="text-sm">暂无任务类型数据</p>
+                    </div>
+                  ) : (
+                    <ResponsiveContainer width="100%" height={300}>
+                      <BarChart
+                        data={Object.entries(statistics.heritage_task_statistics.task_type_distribution)
+                          .map(([name, value]) => ({ name: HERITAGE_TASK_TYPE_MAP[name] || name, value }))
+                          .sort((a, b) => b.value - a.value)}
+                        layout="vertical"
+                        margin={{ left: 20, right: 20 }}
+                      >
+                        <CartesianGrid strokeDasharray="3 3" stroke="#F2E8CF" horizontal={false} />
+                        <XAxis type="number" tick={{ fontSize: 12, fill: '#6B6B6B' }} />
+                        <YAxis
+                          type="category"
+                          dataKey="name"
+                          width={80}
+                          tick={{ fontSize: 11, fill: '#6B6B6B' }}
+                        />
+                        <Tooltip
+                          formatter={(value: number) => [`${value} 个任务`, '任务数']}
+                          contentStyle={{ borderRadius: 12, border: 'none', boxShadow: '0 4px 20px rgba(0,0,0,0.08)' }}
+                        />
+                        <Bar
+                          dataKey="value"
+                          fill="#C8553D"
+                          radius={[0, 6, 6, 0]}
+                          animationBegin={0}
+                          animationDuration={animDone ? 0 : 800}
+                        >
+                          {Object.keys(statistics.heritage_task_statistics.task_type_distribution).map((_, index) => (
+                            <Cell key={`task-type-${index}`} fill={CHART_COLORS[index % CHART_COLORS.length]} />
+                          ))}
+                        </Bar>
+                      </BarChart>
+                    </ResponsiveContainer>
+                  )}
+                </div>
+
+                <div className="card p-6">
+                  <h3 className="section-title text-lg !mb-4 flex items-center gap-2">
+                    <UserCheck className="w-5 h-5 text-sage-600" />
+                    负责人完成率
+                  </h3>
+                  {Object.keys(statistics.heritage_task_statistics.assignee_completion_rate).length === 0 ? (
+                    <div className="text-center py-10 text-ink-400">
+                      <Users className="w-8 h-8 mx-auto mb-2 text-cream-400" />
+                      <p className="text-sm">暂无负责人数据</p>
+                    </div>
+                  ) : (
+                    <div className="space-y-4">
+                      {Object.entries(statistics.heritage_task_statistics.assignee_completion_rate).map(([name, rate]) => (
+                        <div key={name}>
+                          <div className="flex items-center justify-between mb-1">
+                            <span className="text-sm text-ink-700">{name}</span>
+                            <span className="text-sm font-semibold text-ochre-500">{(rate * 100).toFixed(0)}%</span>
+                          </div>
+                          <div className="w-full h-2.5 bg-cream-200 rounded-full overflow-hidden">
+                            <div
+                              className="h-full rounded-full transition-all duration-700 ease-out"
+                              style={{
+                                width: `${Math.min(rate * 100, 100)}%`,
+                                background: 'linear-gradient(90deg, #C8553D, #2D6A4F)',
+                              }}
+                            />
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                <div className="card p-6">
+                  <h3 className="section-title text-lg !mb-4 flex items-center gap-2">
+                    <Timer className="w-5 h-5 text-ochre-500" />
+                    平均确认耗时
+                  </h3>
+                  <div className="bg-amber-50 rounded-xl p-6 text-center">
+                    <p className="text-4xl font-bold text-amber-600 font-display">
+                      {statistics.heritage_task_statistics.avg_confirmation_hours}
+                    </p>
+                    <p className="text-sm text-ink-500 mt-2">小时</p>
+                    <p className="text-xs text-ink-400 mt-1">从提交长辈确认到给出意见的平均时间</p>
+                  </div>
+                </div>
+
+                <div className="card p-6">
+                  <h3 className="section-title text-lg !mb-4 flex items-center gap-2">
+                    <RotateCcw className="w-5 h-5 text-red-500" />
+                    高频返工原因
+                  </h3>
+                  {statistics.heritage_task_statistics.high_frequency_rework_reasons.length === 0 ? (
+                    <div className="text-center py-10 text-ink-400">
+                      <RotateCcw className="w-8 h-8 mx-auto mb-2 text-cream-400" />
+                      <p className="text-sm">暂无返工记录</p>
+                    </div>
+                  ) : (
+                    <div className="space-y-3">
+                      {statistics.heritage_task_statistics.high_frequency_rework_reasons.map((item, idx) => (
+                        <div key={idx} className="flex items-center gap-3">
+                          <div className="w-7 h-7 rounded-full bg-red-100 text-red-600 flex items-center justify-center text-xs font-bold shrink-0">
+                            {idx + 1}
+                          </div>
+                          <div className="flex-1 min-w-0">
+                            <div className="flex items-center justify-between mb-1">
+                              <span className="text-sm text-ink-700 truncate">{item.reason}</span>
+                              <span className="text-sm font-semibold text-red-600 shrink-0 ml-2">{item.count} 次</span>
+                            </div>
+                            <div className="w-full h-1.5 bg-cream-200 rounded-full overflow-hidden">
+                              <div
+                                className="h-full rounded-full bg-red-400 transition-all duration-700 ease-out"
+                                style={{
+                                  width: `${(item.count / Math.max(...statistics.heritage_task_statistics!.high_frequency_rework_reasons.map((r) => r.count))) * 100}%`,
+                                }}
+                              />
+                            </div>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
                 </div>
               </div>
             </>

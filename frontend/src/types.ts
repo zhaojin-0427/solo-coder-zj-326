@@ -21,6 +21,8 @@ export interface TermDetail extends Term {
   annotations: Annotation[];
   versions: Version[];
   locations: TermLocation[];
+  related_task_count?: number;
+  latest_task_status?: { id: number; title: string; status: string } | null;
 }
 
 export interface Pronunciation {
@@ -104,6 +106,8 @@ export interface StoryDetail extends Story {
   related_terms: StoryRelatedTerm[];
   revisions: StoryRevision[];
   locations: TermLocation[];
+  related_task_count?: number;
+  latest_task_status?: { id: number; title: string; status: string } | null;
 }
 
 export interface StoryStatistics {
@@ -134,6 +138,7 @@ export interface Statistics {
   overview: { total_terms: number; total_pronunciations: number; total_annotations: number; total_versions: number; pending_count: number; total_stories?: number };
   story_statistics?: StoryStatistics;
   migration_map_statistics?: MigrationMapStatistics;
+  heritage_task_statistics?: HeritageTaskStatistics;
 }
 
 export interface PaginatedResponse<T> {
@@ -202,6 +207,8 @@ export interface LocationDetail extends Location {
   representative_story: { id: number; title: string; era: string; narrator: string } | null;
   related_family_members: string[];
   recent_revisions: Array<{ id: number; story: number; change_note: string; contributed_by: string; created_at: string | null }>;
+  related_task_count?: number;
+  latest_task_status?: { id: number; title: string; status: string } | null;
 }
 
 export interface LocationFilters {
@@ -223,3 +230,102 @@ export interface MigrationMapStatistics {
   content_without_location_count: number;
   total_content_count: number;
 }
+
+export type HeritageTaskType = 'supplement_pronunciation' | 'confirm_meaning' | 'add_example_sentence' | 'organize_story' | 'supplement_location' | 'verify_kinship_term';
+export type HeritageTaskStatus = 'unclaimed' | 'in_progress' | 'pending_elder_confirm' | 'needs_rework' | 'completed' | 'archived';
+export type HeritageTaskPriority = 'low' | 'medium' | 'high' | 'urgent';
+
+export interface HeritageTask {
+  id: number;
+  title: string;
+  task_type: HeritageTaskType;
+  status: HeritageTaskStatus;
+  priority: HeritageTaskPriority;
+  assignee: string;
+  assistants: string[];
+  due_date: string | null;
+  description: string;
+  acceptance_criteria: string;
+  related_terms: number[];
+  related_stories: number[];
+  related_locations: number[];
+  created_by: string;
+  created_at: string;
+  updated_at: string;
+  related_terms_count?: number;
+  related_stories_count?: number;
+  related_locations_count?: number;
+}
+
+export interface HeritageTaskDetail extends HeritageTask {
+  status_logs: TaskStatusLog[];
+}
+
+export interface TaskStatusLog {
+  id: number;
+  task: number;
+  from_status: string;
+  to_status: string;
+  comment: string;
+  rework_reason: string;
+  is_final_confirmation: boolean;
+  operated_by: string;
+  role: 'elder' | 'youth';
+  created_at: string;
+}
+
+export interface HeritageTaskFilters {
+  assignees: string[];
+  task_types: string[];
+}
+
+export interface HeritageTaskStatistics {
+  total_tasks: number;
+  overdue_tasks: number;
+  pending_elder_confirm: number;
+  task_type_distribution: Record<string, number>;
+  assignee_completion_rate: Record<string, number>;
+  avg_confirmation_hours: number;
+  high_frequency_rework_reasons: Array<{ reason: string; count: number }>;
+}
+
+export const HERITAGE_TASK_TYPE_MAP: Record<string, string> = {
+  supplement_pronunciation: '补充发音',
+  confirm_meaning: '确认释义',
+  add_example_sentence: '补写例句',
+  organize_story: '整理故事',
+  supplement_location: '补充地点',
+  verify_kinship_term: '核对人物称呼',
+};
+
+export const HERITAGE_TASK_STATUS_MAP: Record<string, string> = {
+  unclaimed: '待认领',
+  in_progress: '进行中',
+  pending_elder_confirm: '待长辈确认',
+  needs_rework: '需返工',
+  completed: '已完成',
+  archived: '已归档',
+};
+
+export const HERITAGE_TASK_STATUS_BADGE: Record<string, string> = {
+  unclaimed: 'bg-gray-100 text-gray-700',
+  in_progress: 'bg-blue-100 text-blue-700',
+  pending_elder_confirm: 'bg-amber-100 text-amber-800',
+  needs_rework: 'bg-red-100 text-red-800',
+  completed: 'bg-emerald-100 text-emerald-800',
+  archived: 'bg-cream-200 text-ink-500',
+};
+
+export const HERITAGE_TASK_PRIORITY_MAP: Record<string, string> = {
+  low: '低',
+  medium: '中',
+  high: '高',
+  urgent: '紧急',
+};
+
+export const HERITAGE_TASK_PRIORITY_BADGE: Record<string, string> = {
+  low: 'bg-sage-50 text-sage-700',
+  medium: 'bg-blue-50 text-blue-700',
+  high: 'bg-amber-50 text-amber-700',
+  urgent: 'bg-red-50 text-red-700',
+};

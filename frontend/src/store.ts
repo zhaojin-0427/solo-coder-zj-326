@@ -13,6 +13,9 @@ import type {
   Location,
   LocationDetail,
   LocationFilters,
+  HeritageTask,
+  HeritageTaskDetail,
+  HeritageTaskFilters,
 } from '@/types';
 import { api } from '@/api';
 
@@ -44,6 +47,10 @@ interface AppStore {
   locationsPagination: PaginationState;
   currentLocation: LocationDetail | null;
   locationFilters: LocationFilters | null;
+  heritageTasks: HeritageTask[];
+  heritageTasksPagination: PaginationState;
+  currentHeritageTask: HeritageTaskDetail | null;
+  heritageTaskFilters: HeritageTaskFilters | null;
   statistics: Statistics | null;
   loading: boolean;
   error: string | null;
@@ -92,6 +99,15 @@ interface AppStore {
   fetchLocationFilters: () => Promise<void>;
   fetchAllLocations: () => Promise<void>;
 
+  fetchHeritageTasks: (params?: Record<string, string>, reset?: boolean) => Promise<void>;
+  fetchHeritageTask: (id: number) => Promise<void>;
+  createHeritageTask: (data: Partial<HeritageTask> & { related_terms?: number[]; related_stories?: number[]; related_locations?: number[] }) => Promise<void>;
+  updateHeritageTask: (id: number, data: Partial<HeritageTask> & { related_terms?: number[]; related_stories?: number[]; related_locations?: number[] }) => Promise<void>;
+  deleteHeritageTask: (id: number) => Promise<void>;
+  setHeritageTasksPage: (page: number) => void;
+  fetchHeritageTaskFilters: () => Promise<void>;
+  changeHeritageTaskStatus: (id: number, data: { to_status: string; comment?: string; rework_reason?: string; is_final_confirmation?: boolean; operated_by?: string; role?: string }) => Promise<void>;
+
   fetchStatistics: () => Promise<void>;
   clearError: () => void;
 }
@@ -122,6 +138,10 @@ export const useStore = create<AppStore>((set, get) => ({
   locationsPagination: { ...DEFAULT_PAGINATION },
   currentLocation: null,
   locationFilters: null,
+  heritageTasks: [],
+  heritageTasksPagination: { ...DEFAULT_PAGINATION },
+  currentHeritageTask: null,
+  heritageTaskFilters: null,
   statistics: null,
   loading: false,
   error: null,
@@ -532,6 +552,89 @@ export const useStore = create<AppStore>((set, get) => ({
       set({ allLocations: res.results });
     } catch (e: unknown) {
       console.error('Failed to fetch all locations:', e);
+    }
+  },
+
+  fetchHeritageTasks: async (params, reset) => {
+    set({ loading: true, error: null });
+    try {
+      const p = { ...params };
+      if (!reset && !p.page) {
+        p.page = String(get().heritageTasksPagination.page);
+      } else if (reset) {
+        p.page = '1';
+      }
+      const res = await api.heritageTasks.list(p);
+      set({ heritageTasks: res.results, heritageTasksPagination: parsePagination(res.count, Number(p.page)), loading: false });
+    } catch (e: unknown) {
+      set({ error: (e as Error).message, loading: false });
+    }
+  },
+
+  fetchHeritageTask: async (id) => {
+    set({ loading: true, error: null });
+    try {
+      const task = await api.heritageTasks.get(id);
+      set({ currentHeritageTask: task, loading: false });
+    } catch (e: unknown) {
+      set({ error: (e as Error).message, loading: false });
+    }
+  },
+
+  createHeritageTask: async (data) => {
+    set({ loading: true, error: null });
+    try {
+      await api.heritageTasks.create(data);
+      await get().fetchHeritageTasks(undefined, true);
+    } catch (e: unknown) {
+      set({ error: (e as Error).message, loading: false });
+    }
+  },
+
+  updateHeritageTask: async (id, data) => {
+    set({ loading: true, error: null });
+    try {
+      await api.heritageTasks.update(id, data);
+      await get().fetchHeritageTasks();
+      if (get().currentHeritageTask?.id === id) await get().fetchHeritageTask(id);
+    } catch (e: unknown) {
+      set({ error: (e as Error).message, loading: false });
+    }
+  },
+
+  deleteHeritageTask: async (id) => {
+    set({ loading: true, error: null });
+    try {
+      await api.heritageTasks.delete(id);
+      await get().fetchHeritageTasks();
+      if (get().currentHeritageTask?.id === id) set({ currentHeritageTask: null });
+      set({ loading: false });
+    } catch (e: unknown) {
+      set({ error: (e as Error).message, loading: false });
+    }
+  },
+
+  setHeritageTasksPage: (page) => {
+    set({ heritageTasksPagination: { ...get().heritageTasksPagination, page } });
+  },
+
+  fetchHeritageTaskFilters: async () => {
+    try {
+      const filters = await api.heritageTasks.getFilters();
+      set({ heritageTaskFilters: filters });
+    } catch (e: unknown) {
+      console.error('Failed to fetch heritage task filters:', e);
+    }
+  },
+
+  changeHeritageTaskStatus: async (id, data) => {
+    set({ loading: true, error: null });
+    try {
+      const task = await api.heritageTasks.changeStatus(id, data);
+      set({ currentHeritageTask: task, loading: false });
+      await get().fetchHeritageTasks();
+    } catch (e: unknown) {
+      set({ error: (e as Error).message, loading: false });
     }
   },
 

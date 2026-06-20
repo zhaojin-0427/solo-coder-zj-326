@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import { useStore } from '@/store';
-import { STORY_STATUS_MAP, STORY_STATUS_BADGE, ROLE_MAP } from '@/types';
+import { STORY_STATUS_MAP, STORY_STATUS_BADGE, ROLE_MAP, HERITAGE_TASK_STATUS_MAP, HERITAGE_TASK_STATUS_BADGE } from '@/types';
 import {
   ArrowLeft,
   Calendar,
@@ -25,6 +25,7 @@ import {
   AlertCircle,
   FileText,
   Search,
+  ClipboardList,
 } from 'lucide-react';
 
 export default function StoryDetail() {
@@ -652,6 +653,34 @@ export default function StoryDetail() {
                     <ChevronRight className="w-4 h-4 text-ink-300 group-hover:text-ochre-500 transition-colors shrink-0" />
                   </Link>
                 ))}
+              </div>
+            </div>
+          )}
+
+          {(currentStory.related_task_count ?? 0) > 0 && (
+            <div className="card p-5">
+              <h3 className="font-display text-base text-ink-900 flex items-center gap-2 mb-3">
+                <ClipboardList className="w-4 h-4 text-ochre-500" />
+                关联传承任务
+              </h3>
+              <div className="bg-ochre-50 rounded-lg p-3">
+                <div className="flex items-center justify-between mb-1">
+                  <span className="text-sm text-ink-700">共 {currentStory.related_task_count} 个任务</span>
+                  {currentStory.latest_task_status && (
+                    <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-medium ${HERITAGE_TASK_STATUS_BADGE[currentStory.latest_task_status.status] || 'bg-cream-200 text-ink-600'}`}>
+                      {HERITAGE_TASK_STATUS_MAP[currentStory.latest_task_status.status] || currentStory.latest_task_status.status}
+                    </span>
+                  )}
+                </div>
+                {currentStory.latest_task_status && (
+                  <p className="text-xs text-ink-500 truncate">{currentStory.latest_task_status.title}</p>
+                )}
+                <Link
+                  to="/heritage-tasks"
+                  className="text-xs text-ochre-500 hover:text-ochre-600 mt-1 flex items-center gap-1"
+                >
+                  查看全部任务 <ChevronRight className="w-3 h-3" />
+                </Link>
               </div>
             </div>
           )}

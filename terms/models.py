@@ -152,6 +152,74 @@ class Story(models.Model):
         return self.title
 
 
+class HeritageTask(models.Model):
+    TASK_TYPE_CHOICES = [
+        ('supplement_pronunciation', '补充发音'),
+        ('confirm_meaning', '确认释义'),
+        ('add_example_sentence', '补写例句'),
+        ('organize_story', '整理故事'),
+        ('supplement_location', '补充地点'),
+        ('verify_kinship_term', '核对人物称呼'),
+    ]
+    STATUS_CHOICES = [
+        ('unclaimed', '待认领'),
+        ('in_progress', '进行中'),
+        ('pending_elder_confirm', '待长辈确认'),
+        ('needs_rework', '需返工'),
+        ('completed', '已完成'),
+        ('archived', '已归档'),
+    ]
+    PRIORITY_CHOICES = [
+        ('low', '低'),
+        ('medium', '中'),
+        ('high', '高'),
+        ('urgent', '紧急'),
+    ]
+
+    title = models.CharField(max_length=200)
+    task_type = models.CharField(max_length=50, choices=TASK_TYPE_CHOICES)
+    status = models.CharField(max_length=30, default='unclaimed', choices=STATUS_CHOICES)
+    priority = models.CharField(max_length=10, default='medium', choices=PRIORITY_CHOICES)
+    assignee = models.CharField(max_length=100, blank=True, default='')
+    assistants = models.JSONField(default=list, blank=True)
+    due_date = models.DateField(null=True, blank=True)
+    description = models.TextField(blank=True, default='')
+    acceptance_criteria = models.TextField(blank=True, default='')
+    related_terms = models.ManyToManyField(Term, blank=True, related_name='heritage_tasks')
+    related_stories = models.ManyToManyField(Story, blank=True, related_name='heritage_tasks')
+    related_locations = models.ManyToManyField(Location, blank=True, related_name='heritage_tasks')
+    created_by = models.CharField(max_length=100, blank=True, default='')
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ['-created_at']
+
+    def __str__(self):
+        return self.title
+
+
+class TaskStatusLog(models.Model):
+    task = models.ForeignKey(HeritageTask, on_delete=models.CASCADE, related_name='status_logs')
+    from_status = models.CharField(max_length=30, blank=True, default='')
+    to_status = models.CharField(max_length=30)
+    comment = models.TextField(blank=True, default='')
+    rework_reason = models.TextField(blank=True, default='')
+    is_final_confirmation = models.BooleanField(default=False)
+    operated_by = models.CharField(max_length=100, blank=True, default='')
+    role = models.CharField(max_length=10, default='youth', choices=[
+        ('elder', '长辈'),
+        ('youth', '晚辈'),
+    ])
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ['-created_at']
+
+    def __str__(self):
+        return f"{self.task} - {self.to_status}"
+
+
 class StoryRevision(models.Model):
     ROLE_CHOICES = [
         ('elder', '长辈'),
