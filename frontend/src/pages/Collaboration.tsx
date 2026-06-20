@@ -94,11 +94,11 @@ export default function Collaboration() {
   useEffect(() => {
     if (selectedTermId) {
       fetchTerm(selectedTermId);
-      fetchVersions({ term: String(selectedTermId), page_size: '100' }, true);
+      fetchVersions({ term: String(selectedTermId) }, true);
     }
   }, [selectedTermId, fetchTerm, fetchVersions]);
 
-  const contributorMap = versions.reduce<Map<string, { role: Version['role']; count: number }>>((acc, v) => {
+  const contributorMap = (currentTerm?.versions ?? []).reduce<Map<string, { role: Version['role']; count: number }>>((acc, v) => {
     const name = v.contributed_by || '匿名';
     if (!acc.has(name)) {
       acc.set(name, { role: v.role, count: 0 });
@@ -376,6 +376,7 @@ export default function Collaboration() {
                     <p className="text-sm">暂无版本记录</p>
                   </div>
                 ) : (
+                  <>
                   <div className="relative pl-6">
                     <div className="absolute left-2.5 top-2 bottom-2 w-0.5 bg-cream-200" />
                     <div className="space-y-4">
@@ -451,6 +452,15 @@ export default function Collaboration() {
                       ))}
                     </div>
                   </div>
+                  <div className="mt-4">
+                    <Pagination
+                      page={versionsPagination.page}
+                      pageSize={versionsPagination.pageSize}
+                      total={versionsPagination.total}
+                      onPageChange={setVersionsPage}
+                    />
+                  </div>
+                  </>
                 )}
               </div>
 
