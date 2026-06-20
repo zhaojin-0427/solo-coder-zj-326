@@ -43,6 +43,7 @@ export default function Stories() {
     stories,
     storiesPagination,
     allTerms,
+    storyFilters,
     loading,
     fetchStories,
     setStoriesPage,
@@ -50,6 +51,7 @@ export default function Stories() {
     createStory,
     updateStory,
     deleteStory,
+    fetchStoryFilters,
   } = useStore();
 
   const [search, setSearch] = useState('');
@@ -65,7 +67,8 @@ export default function Stories() {
 
   useEffect(() => {
     fetchAllTerms();
-  }, [fetchAllTerms]);
+    fetchStoryFilters();
+  }, [fetchAllTerms, fetchStoryFilters]);
 
   useEffect(() => {
     const params: Record<string, string> = {};
@@ -135,13 +138,8 @@ export default function Stories() {
 
   const selectedTerms = allTerms.filter((t) => form.related_terms.includes(t.id));
 
-  const allTags = Array.from(
-    new Set(stories.flatMap((s) => s.tags || []))
-  ).sort();
-
-  const allNarrators = Array.from(
-    new Set(stories.map((s) => s.narrator).filter(Boolean))
-  ).sort();
+  const allTags = storyFilters?.tags ?? [];
+  const allNarrators = storyFilters?.narrators ?? [];
 
   return (
     <div className="page-container">

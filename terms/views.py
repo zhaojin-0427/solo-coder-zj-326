@@ -65,7 +65,8 @@ class StoryViewSet(viewsets.ModelViewSet):
         queryset = super().get_queryset()
         tag = self.request.query_params.get('tag')
         if tag:
-            queryset = queryset.filter(tags__contains=[tag])
+            from django.db.models import Q
+            queryset = queryset.filter(Q(tags__icontains=f'"{tag}"') | Q(tags__icontains=tag))
         return queryset
 
 
@@ -73,6 +74,28 @@ class StoryRevisionViewSet(viewsets.ModelViewSet):
     queryset = StoryRevision.objects.all()
     serializer_class = StoryRevisionSerializer
     filterset_fields = ['story', 'role']
+
+
+class StoryFiltersAPIView(APIView):
+    def get(self, request):
+        narrators = list(
+            Story.objects.values_list('narrator', flat=True)
+            .exclude(narrator='')
+            .distinct()
+            .order_by('narrator')
+        )
+
+        all_tags = []
+        for story_tags in Story.objects.values_list('tags', flat=True):
+            if story_tags and isinstance(story_tags, list):
+                for tag in story_tags:
+                    if tag and tag not in all_tags:
+                        all_tags.append(tag)
+
+        return Response({
+            'narrators': narrators,
+            'tags': sorted(all_tags),
+        })
 
 
 class StatisticsAPIView(APIView):

@@ -1,5 +1,5 @@
 import { create } from 'zustand';
-import type { Term, TermDetail, Pronunciation, Annotation, Version, Statistics, Story, StoryDetail, StoryRevision } from '@/types';
+import type { Term, TermDetail, Pronunciation, Annotation, Version, Statistics, Story, StoryDetail, StoryRevision, StoryFilters } from '@/types';
 import { api } from '@/api';
 
 const DEFAULT_PAGE_SIZE = 10;
@@ -33,6 +33,7 @@ interface AppStore {
   storiesPagination: PaginationState;
   storiesFilterParams: Record<string, string>;
   currentStory: StoryDetail | null;
+  storyFilters: StoryFilters | null;
 
   storyRevisions: StoryRevision[];
   storyRevisionsPagination: PaginationState;
@@ -73,6 +74,7 @@ interface AppStore {
   createStory: (data: Partial<Story> & { related_terms?: number[] }) => Promise<void>;
   updateStory: (id: number, data: Partial<Story> & { related_terms?: number[] }) => Promise<void>;
   deleteStory: (id: number) => Promise<void>;
+  fetchStoryFilters: () => Promise<void>;
 
   createStoryRevision: (data: Partial<StoryRevision>) => Promise<void>;
   fetchStoryRevisions: (storyId: number) => Promise<void>;
@@ -116,6 +118,7 @@ export const useStore = create<AppStore>((set, get) => ({
   storiesPagination: { page: 1, pageSize: DEFAULT_PAGE_SIZE, total: 0 },
   storiesFilterParams: {},
   currentStory: null,
+  storyFilters: null,
 
   storyRevisions: [],
   storyRevisionsPagination: { page: 1, pageSize: DEFAULT_PAGE_SIZE, total: 0 },
@@ -573,6 +576,7 @@ export const useStore = create<AppStore>((set, get) => ({
       await api.stories.create(data);
       const { storiesFilterParams } = get();
       await get().fetchStories(storiesFilterParams, false);
+      await get().fetchStoryFilters();
     } catch (e: unknown) {
       set({ error: (e as Error).message, loading: false });
     }
@@ -584,6 +588,7 @@ export const useStore = create<AppStore>((set, get) => ({
       await api.stories.update(id, data);
       const { storiesFilterParams } = get();
       await get().fetchStories(storiesFilterParams, false);
+      await get().fetchStoryFilters();
       if (get().currentStory?.id === id) {
         await get().fetchStory(id);
       }
@@ -616,6 +621,20 @@ export const useStore = create<AppStore>((set, get) => ({
           loading: false,
         });
       }
+      await get().fetchStoryFilters();
+    } catch (e: unknown) {
+      set({ error: (e as Error).message, loading: false });
+    }
+  },
+
+  fetchStoryFilters: async () => {
+    set({ loading: true, error: null });
+    try {
+      const res = await api.stories.getFilters();
+      set({
+        storyFilters: res,
+        loading: false,
+      });
     } catch (e: unknown) {
       set({ error: (e as Error).message, loading: false });
     }

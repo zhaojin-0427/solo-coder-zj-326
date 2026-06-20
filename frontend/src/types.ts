@@ -162,3 +162,8 @@ export const STORY_STATUS_BADGE: Record<string, string> = {
   organized: 'bg-emerald-100 text-emerald-800',
   needs_supplement: 'bg-red-100 text-red-800',
 };
+
+export interface StoryFilters {
+  narrators: string[];
+  tags: string[];
+}

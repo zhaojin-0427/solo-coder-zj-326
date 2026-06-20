@@ -3,6 +3,7 @@ from django.urls import path, include
 from .views import (
     TermViewSet, PronunciationViewSet, AnnotationViewSet,
     VersionViewSet, StatisticsAPIView, StoryViewSet, StoryRevisionViewSet,
+    StoryFiltersAPIView,
 )
 
 router = DefaultRouter()
@@ -15,5 +16,6 @@ router.register(r'story-revisions', StoryRevisionViewSet)
 
 urlpatterns = [
     path('statistics/', StatisticsAPIView.as_view()),
+    path('story-filters/', StoryFiltersAPIView.as_view()),
     path('', include(router.urls)),
 ]

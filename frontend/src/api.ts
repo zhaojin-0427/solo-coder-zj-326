@@ -1,4 +1,4 @@
-import type { Term, TermDetail, Pronunciation, Annotation, Version, Statistics, PaginatedResponse, Story, StoryDetail, StoryRevision } from '@/types';
+import type { Term, TermDetail, Pronunciation, Annotation, Version, Statistics, PaginatedResponse, Story, StoryDetail, StoryRevision, StoryFilters } from '@/types';
 
 const BASE = '/api';
 
@@ -61,6 +61,7 @@ export const api = {
     create: (data: Partial<Story> & { related_terms?: number[] | string }) => request<Story>('/stories/', { method: 'POST', body: JSON.stringify(data) }),
     update: (id: number, data: Partial<Story> & { related_terms?: number[] | string }) => request<Story>(`/stories/${id}/`, { method: 'PUT', body: JSON.stringify(data) }),
     delete: (id: number) => request<void>(`/stories/${id}/`, { method: 'DELETE' }),
+    getFilters: () => request<StoryFilters>('/story-filters/'),
   },
   storyRevisions: {
     list: (params?: Record<string, string>) => {

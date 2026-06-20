@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import { useStore } from '@/store';
 import type { Term } from '@/types';
 import { ERA_OPTIONS, CATEGORY_OPTIONS, STATUS_MAP } from '@/types';
@@ -35,6 +36,7 @@ const EMPTY_FORM = {
 
 export default function Collection() {
   const { terms, termsPagination, currentTerm, loading, fetchTerms, setTermsPage, fetchTerm, createTerm, updateTerm, deleteTerm } = useStore();
+  const [searchParams, setSearchParams] = useSearchParams();
 
   const [search, setSearch] = useState('');
   const [filterEra, setFilterEra] = useState('');
@@ -53,6 +55,28 @@ export default function Collection() {
     if (filterStatus) params.status = filterStatus;
     fetchTerms(params, true);
   }, [search, filterEra, filterCategory, filterStatus, fetchTerms]);
+
+  useEffect(() => {
+    const termId = searchParams.get('term');
+    if (termId) {
+      const id = Number(termId);
+      if (!isNaN(id)) {
+        fetchTerm(id);
+        setShowDetail(true);
+      }
+    }
+  }, [searchParams, fetchTerm]);
+
+  const openDetail = async (id: number) => {
+    await fetchTerm(id);
+    setShowDetail(true);
+    setSearchParams({ term: String(id) });
+  };
+
+  const closeDetail = () => {
+    setShowDetail(false);
+    setSearchParams({});
+  };
 
   const openCreateForm = () => {
     setEditingId(null);
@@ -88,12 +112,7 @@ export default function Collection() {
 
   const handleDelete = async (id: number) => {
     await deleteTerm(id);
-    setShowDetail(false);
-  };
-
-  const openDetail = async (id: number) => {
-    await fetchTerm(id);
-    setShowDetail(true);
+    closeDetail();
   };
 
   return (
@@ -284,14 +303,14 @@ export default function Collection() {
       )}
 
       {showDetail && currentTerm && (
-        <div className="fixed inset-0 z-50 flex justify-end" onClick={() => setShowDetail(false)}>
+        <div className="fixed inset-0 z-50 flex justify-end" onClick={closeDetail}>
           <div
             className="w-full max-w-lg bg-white h-full shadow-2xl overflow-y-auto animate-slide-in"
             onClick={(e) => e.stopPropagation()}
           >
             <div className="sticky top-0 bg-white/95 backdrop-blur-sm border-b border-cream-200 p-6 flex items-center justify-between z-10">
               <h2 className="font-display text-2xl text-ink-900">{currentTerm.word}</h2>
-              <button className="p-2 rounded-lg hover:bg-cream-100 transition-colors" onClick={() => setShowDetail(false)}>
+              <button className="p-2 rounded-lg hover:bg-cream-100 transition-colors" onClick={closeDetail}>
                 <X className="w-5 h-5 text-ink-400" />
               </button>
             </div>
@@ -401,7 +420,7 @@ export default function Collection() {
                 <button
                   className="btn-secondary flex-1"
                   onClick={() => {
-                    setShowDetail(false);
+                    closeDetail();
                     openEditForm(currentTerm);
                   }}
                 >
