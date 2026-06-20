@@ -17,6 +17,16 @@ class TermViewSet(viewsets.ModelViewSet):
             return TermDetailSerializer
         return TermSerializer
 
+    def get_queryset(self):
+        queryset = super().get_queryset()
+        has_versions = self.request.query_params.get('has_versions')
+        if has_versions is not None:
+            if has_versions.lower() in ('true', '1', 'yes'):
+                queryset = queryset.annotate(version_cnt=Count('versions')).filter(version_cnt__gt=0)
+            elif has_versions.lower() in ('false', '0', 'no'):
+                queryset = queryset.annotate(version_cnt=Count('versions')).filter(version_cnt=0)
+        return queryset
+
 
 class PronunciationViewSet(viewsets.ModelViewSet):
     queryset = Pronunciation.objects.all()

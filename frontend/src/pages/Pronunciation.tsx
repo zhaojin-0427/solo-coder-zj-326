@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { useStore } from '@/store';
 import type { Pronunciation } from '@/types';
 import { ROLE_MAP } from '@/types';
+import Pagination from '@/components/Pagination';
 import {
   Mic,
   Plus,
@@ -26,7 +27,7 @@ const EMPTY_FORM = {
 };
 
 export default function PronunciationPage() {
-  const { terms, pronunciations, loading, fetchTerms, fetchPronunciations, createPronunciation, updatePronunciation, deletePronunciation } = useStore();
+  const { allTerms, pronunciations, pronunciationsPagination, loading, fetchAllTerms, fetchPronunciations, setPronunciationsPage, createPronunciation, updatePronunciation, deletePronunciation } = useStore();
 
   const [selectedTermId, setSelectedTermId] = useState<number | ''>('');
   const [showForm, setShowForm] = useState(false);
@@ -34,14 +35,16 @@ export default function PronunciationPage() {
   const [form, setForm] = useState(EMPTY_FORM);
 
   useEffect(() => {
-    fetchTerms();
-  }, [fetchTerms]);
+    fetchAllTerms();
+  }, [fetchAllTerms]);
 
   useEffect(() => {
-    fetchPronunciations(selectedTermId || undefined);
+    const params: Record<string, string> = {};
+    if (selectedTermId) params.term = String(selectedTermId);
+    fetchPronunciations(params, true);
   }, [selectedTermId, fetchPronunciations]);
 
-  const termMap = new Map(terms.map((t) => [t.id, t]));
+  const termMap = new Map(allTerms.map((t) => [t.id, t]));
 
   const grouped = pronunciations.reduce<Record<number, Pronunciation[]>>((acc, p) => {
     if (!acc[p.term]) acc[p.term] = [];
@@ -53,7 +56,7 @@ export default function PronunciationPage() {
     setEditingId(null);
     setForm({
       ...EMPTY_FORM,
-      term: selectedTermId || (terms[0]?.id ?? 0),
+      term: selectedTermId || (allTerms[0]?.id ?? 0),
     });
     setShowForm(true);
   };
@@ -110,7 +113,7 @@ export default function PronunciationPage() {
                 onChange={(e) => setSelectedTermId(e.target.value ? Number(e.target.value) : '')}
               >
                 <option value="">全部词条</option>
-                {terms.map((t) => (
+                {allTerms.map((t) => (
                   <option key={t.id} value={t.id}>{t.word}</option>
                 ))}
               </select>
@@ -126,7 +129,7 @@ export default function PronunciationPage() {
 
       <div className="flex items-center justify-between mb-4">
         <p className="text-sm text-ink-500">
-          共 <span className="font-semibold text-ochre-500">{pronunciations.length}</span> 条发音记录
+          共 <span className="font-semibold text-ochre-500">{pronunciationsPagination.total}</span> 条发音记录
         </p>
       </div>
 
@@ -142,6 +145,7 @@ export default function PronunciationPage() {
           <p className="text-sm text-ink-300 mt-1">点击"添加发音"开始记录</p>
         </div>
       ) : (
+        <>
         <div className="space-y-8">
           {(Object.entries(grouped) as [string, Pronunciation[]][]).map(([termIdStr, items]) => {
             const termId = Number(termIdStr);
@@ -249,6 +253,14 @@ export default function PronunciationPage() {
             );
           })}
         </div>
+
+        <Pagination
+          page={pronunciationsPagination.page}
+          pageSize={pronunciationsPagination.pageSize}
+          total={pronunciationsPagination.total}
+          onPageChange={setPronunciationsPage}
+        />
+      </>
       )}
 
       {showForm && (
@@ -276,7 +288,7 @@ export default function PronunciationPage() {
                     onChange={(e) => setForm({ ...form, term: Number(e.target.value) })}
                   >
                     <option value={0}>选择词条</option>
-                    {terms.map((t) => (
+                    {allTerms.map((t) => (
                       <option key={t.id} value={t.id}>{t.word}</option>
                     ))}
                   </select>

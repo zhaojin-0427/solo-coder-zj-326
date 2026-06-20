@@ -1,7 +1,9 @@
 import { useState, useEffect } from 'react';
 import { useStore } from '@/store';
+import { api } from '@/api';
 import type { Term, Version } from '@/types';
 import { STATUS_MAP, ROLE_MAP } from '@/types';
+import Pagination from '@/components/Pagination';
 import {
   Users,
   Plus,
@@ -37,12 +39,16 @@ type ViewMode = 'collaboration' | 'all';
 export default function Collaboration() {
   const {
     terms,
+    termsPagination,
     currentTerm,
     versions,
+    versionsPagination,
     loading,
     fetchTerms,
+    setTermsPage,
     fetchTerm,
     fetchVersions,
+    setVersionsPage,
     createVersion,
     updateVersion,
     deleteVersion,
@@ -57,19 +63,40 @@ export default function Collaboration() {
   const [editingVersionId, setEditingVersionId] = useState<number | null>(null);
   const [statusConfirmId, setStatusConfirmId] = useState<number | null>(null);
   const [statusConfirmValue, setStatusConfirmValue] = useState<Term['status'] | null>(null);
+  const [allTermsCount, setAllTermsCount] = useState(0);
+  const [collabTermsCount, setCollabTermsCount] = useState(0);
+
+  const fetchCounts = async () => {
+    try {
+      const [allRes, collabRes] = await Promise.all([
+        api.terms.list({ page_size: '1' }),
+        api.terms.list({ has_versions: 'true', page_size: '1' }),
+      ]);
+      setAllTermsCount(allRes.count);
+      setCollabTermsCount(collabRes.count);
+    } catch {
+      // ignore count fetch errors
+    }
+  };
 
   useEffect(() => {
-    fetchTerms();
-  }, [fetchTerms]);
+    fetchCounts();
+  }, []);
+
+  useEffect(() => {
+    const params: Record<string, string> = {};
+    if (viewMode === 'collaboration') {
+      params.has_versions = 'true';
+    }
+    fetchTerms(params, true);
+  }, [viewMode, fetchTerms]);
 
   useEffect(() => {
     if (selectedTermId) {
       fetchTerm(selectedTermId);
-      fetchVersions(selectedTermId);
+      fetchVersions({ term: String(selectedTermId), page_size: '100' }, true);
     }
   }, [selectedTermId, fetchTerm, fetchVersions]);
-
-  const collaborationTerms = terms.filter((t) => (t.version_count ?? 0) > 0);
 
   const contributorMap = versions.reduce<Map<string, { role: Version['role']; count: number }>>((acc, v) => {
     const name = v.contributed_by || '匿名';
@@ -120,14 +147,17 @@ export default function Collaboration() {
     setShowVersionForm(false);
     setVersionForm(EMPTY_VERSION_FORM);
     setEditingVersionId(null);
+    fetchCounts();
   };
 
   const handleDeleteVersion = async (id: number) => {
     await deleteVersion(id);
+    fetchCounts();
   };
 
   const handleToggleCommon = async (v: Version) => {
     await updateVersion(v.id, { ...v, is_common: !v.is_common });
+    fetchCounts();
   };
 
   const handleStatusChange = (termId: number, newStatus: Term['status']) => {
@@ -142,8 +172,6 @@ export default function Collaboration() {
     setStatusConfirmId(null);
     setStatusConfirmValue(null);
   };
-
-  const displayTerms = viewMode === 'collaboration' ? collaborationTerms : terms;
 
   return (
     <div className="page-container">
@@ -171,7 +199,7 @@ export default function Collaboration() {
               onClick={() => setViewMode('collaboration')}
             >
               共编词条
-              <span className="ml-1.5 text-xs opacity-70">{collaborationTerms.length}</span>
+              <span className="ml-1.5 text-xs opacity-70">{collabTermsCount}</span>
             </button>
             <button
               className={`px-4 py-2 rounded-md text-sm font-medium transition-all ${
@@ -182,7 +210,7 @@ export default function Collaboration() {
               onClick={() => setViewMode('all')}
             >
               全部词条
-              <span className="ml-1.5 text-xs opacity-70">{terms.length}</span>
+              <span className="ml-1.5 text-xs opacity-70">{allTermsCount}</span>
             </button>
           </div>
         </div>
@@ -192,7 +220,7 @@ export default function Collaboration() {
         <div className="lg:col-span-3">
           <div className="flex items-center justify-between mb-4">
             <p className="text-sm text-ink-500">
-              共 <span className="font-semibold text-ochre-500">{displayTerms.length}</span> 个词条
+              共 <span className="font-semibold text-ochre-500">{termsPagination.total}</span> 个词条
             </p>
           </div>
 
@@ -201,43 +229,53 @@ export default function Collaboration() {
               <div className="animate-spin w-8 h-8 border-2 border-ochre-500 border-t-transparent rounded-full mx-auto mb-3" />
               加载中...
             </div>
-          ) : !displayTerms.length ? (
+          ) : !terms.length ? (
             <div className="text-center py-20">
               <Users className="w-12 h-12 text-cream-400 mx-auto mb-3" />
               <p className="text-ink-400">暂无共编词条</p>
               <p className="text-sm text-ink-300 mt-1">添加版本释义后，词条将出现在此</p>
             </div>
           ) : (
-            <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-4">
-              {displayTerms.map((term) => (
-                <div
-                  key={term.id}
-                  className={`card card-hover cursor-pointer p-5 group ${
-                    selectedTermId === term.id ? 'ring-2 ring-ochre-500/50' : ''
-                  }`}
-                  onClick={() => handleSelectTerm(term.id)}
-                >
-                  <div className="flex items-start justify-between mb-3">
-                    <h3 className="font-display text-xl text-ink-900 group-hover:text-ochre-500 transition-colors">
-                      {term.word}
-                    </h3>
-                    <span className={STATUS_BADGE_CLASS[term.status]}>
-                      {STATUS_MAP[term.status]}
-                    </span>
-                  </div>
-                  <p className="text-sm text-ink-600 mb-3 line-clamp-2">{term.meaning}</p>
-                  <div className="flex items-center justify-between border-t border-cream-200 pt-3">
-                    <div className="flex items-center gap-2">
-                      <span className="inline-flex items-center gap-1 text-xs bg-ochre-100 text-ochre-700 px-2 py-0.5 rounded-full">
-                        <Edit3 className="w-3 h-3" />
-                        {term.version_count ?? 0} 版本
+            <>
+              <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-4">
+                {terms.map((term) => (
+                  <div
+                    key={term.id}
+                    className={`card card-hover cursor-pointer p-5 group ${
+                      selectedTermId === term.id ? 'ring-2 ring-ochre-500/50' : ''
+                    }`}
+                    onClick={() => handleSelectTerm(term.id)}
+                  >
+                    <div className="flex items-start justify-between mb-3">
+                      <h3 className="font-display text-xl text-ink-900 group-hover:text-ochre-500 transition-colors">
+                        {term.word}
+                      </h3>
+                      <span className={STATUS_BADGE_CLASS[term.status]}>
+                        {STATUS_MAP[term.status]}
                       </span>
                     </div>
-                    <ChevronRight className="w-4 h-4 text-ink-300 group-hover:text-ochre-500 transition-colors" />
+                    <p className="text-sm text-ink-600 mb-3 line-clamp-2">{term.meaning}</p>
+                    <div className="flex items-center justify-between border-t border-cream-200 pt-3">
+                      <div className="flex items-center gap-2">
+                        <span className="inline-flex items-center gap-1 text-xs bg-ochre-100 text-ochre-700 px-2 py-0.5 rounded-full">
+                          <Edit3 className="w-3 h-3" />
+                          {term.version_count ?? 0} 版本
+                        </span>
+                      </div>
+                      <ChevronRight className="w-4 h-4 text-ink-300 group-hover:text-ochre-500 transition-colors" />
+                    </div>
                   </div>
-                </div>
-              ))}
-            </div>
+                ))}
+              </div>
+              <div className="mt-6">
+                <Pagination
+                  page={termsPagination.page}
+                  pageSize={termsPagination.pageSize}
+                  total={termsPagination.total}
+                  onPageChange={setTermsPage}
+                />
+              </div>
+            </>
           )}
         </div>
 

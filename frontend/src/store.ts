@@ -2,38 +2,59 @@ import { create } from 'zustand';
 import type { Term, TermDetail, Pronunciation, Annotation, Version, Statistics } from '@/types';
 import { api } from '@/api';
 
+const DEFAULT_PAGE_SIZE = 10;
+
+interface PaginationState {
+  page: number;
+  pageSize: number;
+  total: number;
+}
+
 interface AppStore {
   terms: Term[];
-  termsCount: number;
+  termsPagination: PaginationState;
+  termsFilterParams: Record<string, string>;
+  allTerms: Term[];
   currentTerm: TermDetail | null;
+
   pronunciations: Pronunciation[];
+  pronunciationsPagination: PaginationState;
+  pronunciationsFilterParams: Record<string, string>;
+
   annotations: Annotation[];
+  annotationsPagination: PaginationState;
+  annotationsFilterParams: Record<string, string>;
+
   versions: Version[];
+  versionsPagination: PaginationState;
+  versionsFilterParams: Record<string, string>;
+
   statistics: Statistics | null;
   loading: boolean;
   error: string | null;
 
-  pronunciationFilterTermId: number | undefined;
-  annotationFilterTermId: number | undefined;
-  versionFilterTermId: number | undefined;
-
-  fetchTerms: (params?: Record<string, string>) => Promise<void>;
+  fetchTerms: (params?: Record<string, string>, resetPage?: boolean) => Promise<void>;
+  setTermsPage: (page: number) => Promise<void>;
+  fetchAllTerms: () => Promise<void>;
   fetchTerm: (id: number) => Promise<void>;
   createTerm: (data: Partial<Term>) => Promise<void>;
   updateTerm: (id: number, data: Partial<Term>) => Promise<void>;
   deleteTerm: (id: number) => Promise<void>;
 
-  fetchPronunciations: (termId?: number) => Promise<void>;
+  fetchPronunciations: (params?: Record<string, string>, resetPage?: boolean) => Promise<void>;
+  setPronunciationsPage: (page: number) => Promise<void>;
   createPronunciation: (data: Partial<Pronunciation>) => Promise<void>;
   updatePronunciation: (id: number, data: Partial<Pronunciation>) => Promise<void>;
   deletePronunciation: (id: number) => Promise<void>;
 
-  fetchAnnotations: (termId?: number) => Promise<void>;
+  fetchAnnotations: (params?: Record<string, string>, resetPage?: boolean) => Promise<void>;
+  setAnnotationsPage: (page: number) => Promise<void>;
   createAnnotation: (data: Partial<Annotation>) => Promise<void>;
   updateAnnotation: (id: number, data: Partial<Annotation>) => Promise<void>;
   deleteAnnotation: (id: number) => Promise<void>;
 
-  fetchVersions: (termId?: number) => Promise<void>;
+  fetchVersions: (params?: Record<string, string>, resetPage?: boolean) => Promise<void>;
+  setVersionsPage: (page: number) => Promise<void>;
   createVersion: (data: Partial<Version>) => Promise<void>;
   updateVersion: (id: number, data: Partial<Version>) => Promise<void>;
   deleteVersion: (id: number) => Promise<void>;
@@ -43,25 +64,80 @@ interface AppStore {
   clearError: () => void;
 }
 
+function buildParamsWithPagination(
+  baseParams: Record<string, string> | undefined,
+  page: number,
+  pageSize: number
+): Record<string, string> {
+  const params: Record<string, string> = { ...baseParams };
+  params.page = String(page);
+  params.page_size = String(pageSize);
+  return params;
+}
+
 export const useStore = create<AppStore>((set, get) => ({
   terms: [],
-  termsCount: 0,
+  termsPagination: { page: 1, pageSize: DEFAULT_PAGE_SIZE, total: 0 },
+  termsFilterParams: {},
+  allTerms: [],
   currentTerm: null,
+
   pronunciations: [],
+  pronunciationsPagination: { page: 1, pageSize: DEFAULT_PAGE_SIZE, total: 0 },
+  pronunciationsFilterParams: {},
+
   annotations: [],
+  annotationsPagination: { page: 1, pageSize: DEFAULT_PAGE_SIZE, total: 0 },
+  annotationsFilterParams: {},
+
   versions: [],
+  versionsPagination: { page: 1, pageSize: DEFAULT_PAGE_SIZE, total: 0 },
+  versionsFilterParams: {},
+
   statistics: null,
   loading: false,
   error: null,
-  pronunciationFilterTermId: undefined,
-  annotationFilterTermId: undefined,
-  versionFilterTermId: undefined,
 
-  fetchTerms: async (params) => {
+  fetchTerms: async (params, resetPage = true) => {
     set({ loading: true, error: null });
     try {
-      const res = await api.terms.list(params);
-      set({ terms: res.results, termsCount: res.count, loading: false });
+      const filterParams = params ?? get().termsFilterParams;
+      const { page, pageSize } = get().termsPagination;
+      const currentPage = resetPage ? 1 : page;
+      const queryParams = buildParamsWithPagination(filterParams, currentPage, pageSize);
+      const res = await api.terms.list(queryParams);
+      set({
+        terms: res.results,
+        termsPagination: { page: currentPage, pageSize, total: res.count },
+        termsFilterParams: filterParams,
+        loading: false,
+      });
+    } catch (e: unknown) {
+      set({ error: (e as Error).message, loading: false });
+    }
+  },
+
+  setTermsPage: async (page: number) => {
+    set({ loading: true, error: null });
+    try {
+      const { termsFilterParams, termsPagination } = get();
+      const queryParams = buildParamsWithPagination(termsFilterParams, page, termsPagination.pageSize);
+      const res = await api.terms.list(queryParams);
+      set({
+        terms: res.results,
+        termsPagination: { ...termsPagination, page, total: res.count },
+        loading: false,
+      });
+    } catch (e: unknown) {
+      set({ error: (e as Error).message, loading: false });
+    }
+  },
+
+  fetchAllTerms: async () => {
+    set({ loading: true, error: null });
+    try {
+      const res = await api.terms.list({ page_size: '1000' });
+      set({ allTerms: res.results, loading: false });
     } catch (e: unknown) {
       set({ error: (e as Error).message, loading: false });
     }
@@ -81,7 +157,8 @@ export const useStore = create<AppStore>((set, get) => ({
     set({ loading: true, error: null });
     try {
       await api.terms.create(data);
-      await get().fetchTerms();
+      const { termsFilterParams, termsPagination } = get();
+      await get().fetchTerms(termsFilterParams, false);
     } catch (e: unknown) {
       set({ error: (e as Error).message, loading: false });
     }
@@ -91,7 +168,11 @@ export const useStore = create<AppStore>((set, get) => ({
     set({ loading: true, error: null });
     try {
       await api.terms.update(id, data);
-      await get().fetchTerms();
+      const { termsFilterParams, termsPagination } = get();
+      await get().fetchTerms(termsFilterParams, false);
+      if (get().currentTerm?.id === id) {
+        await get().fetchTerm(id);
+      }
     } catch (e: unknown) {
       set({ error: (e as Error).message, loading: false });
     }
@@ -101,18 +182,61 @@ export const useStore = create<AppStore>((set, get) => ({
     set({ loading: true, error: null });
     try {
       await api.terms.delete(id);
-      await get().fetchTerms();
+      const { termsFilterParams, termsPagination } = get();
+      let { page } = termsPagination;
+      const queryParams = buildParamsWithPagination(termsFilterParams, page, termsPagination.pageSize);
+      const res = await api.terms.list(queryParams);
+      if (res.results.length === 0 && page > 1) {
+        page -= 1;
+        const prevParams = buildParamsWithPagination(termsFilterParams, page, termsPagination.pageSize);
+        const prevRes = await api.terms.list(prevParams);
+        set({
+          terms: prevRes.results,
+          termsPagination: { ...termsPagination, page, total: prevRes.count },
+          loading: false,
+        });
+      } else {
+        set({
+          terms: res.results,
+          termsPagination: { ...termsPagination, total: res.count },
+          loading: false,
+        });
+      }
     } catch (e: unknown) {
       set({ error: (e as Error).message, loading: false });
     }
   },
 
-  fetchPronunciations: async (termId) => {
-    set({ loading: true, error: null, pronunciationFilterTermId: termId });
+  fetchPronunciations: async (params, resetPage = true) => {
+    set({ loading: true, error: null });
     try {
-      const params = termId ? { term: String(termId) } : undefined;
-      const res = await api.pronunciations.list(params);
-      set({ pronunciations: res.results, loading: false });
+      const filterParams = params ?? get().pronunciationsFilterParams;
+      const { page, pageSize } = get().pronunciationsPagination;
+      const currentPage = resetPage ? 1 : page;
+      const queryParams = buildParamsWithPagination(filterParams, currentPage, pageSize);
+      const res = await api.pronunciations.list(queryParams);
+      set({
+        pronunciations: res.results,
+        pronunciationsPagination: { page: currentPage, pageSize, total: res.count },
+        pronunciationsFilterParams: filterParams,
+        loading: false,
+      });
+    } catch (e: unknown) {
+      set({ error: (e as Error).message, loading: false });
+    }
+  },
+
+  setPronunciationsPage: async (page: number) => {
+    set({ loading: true, error: null });
+    try {
+      const { pronunciationsFilterParams, pronunciationsPagination } = get();
+      const queryParams = buildParamsWithPagination(pronunciationsFilterParams, page, pronunciationsPagination.pageSize);
+      const res = await api.pronunciations.list(queryParams);
+      set({
+        pronunciations: res.results,
+        pronunciationsPagination: { ...pronunciationsPagination, page, total: res.count },
+        loading: false,
+      });
     } catch (e: unknown) {
       set({ error: (e as Error).message, loading: false });
     }
@@ -123,8 +247,9 @@ export const useStore = create<AppStore>((set, get) => ({
     try {
       await api.pronunciations.create(data);
       if (data.term) await get().fetchTerm(data.term);
-      await get().fetchPronunciations(get().pronunciationFilterTermId);
-      await get().fetchTerms();
+      const { pronunciationsFilterParams, pronunciationsPagination } = get();
+      await get().fetchPronunciations(pronunciationsFilterParams, false);
+      await get().fetchTerms(get().termsFilterParams, false);
     } catch (e: unknown) {
       set({ error: (e as Error).message, loading: false });
     }
@@ -135,8 +260,9 @@ export const useStore = create<AppStore>((set, get) => ({
     try {
       await api.pronunciations.update(id, data);
       if (data.term) await get().fetchTerm(data.term);
-      await get().fetchPronunciations(get().pronunciationFilterTermId);
-      await get().fetchTerms();
+      const { pronunciationsFilterParams, pronunciationsPagination } = get();
+      await get().fetchPronunciations(pronunciationsFilterParams, false);
+      await get().fetchTerms(get().termsFilterParams, false);
     } catch (e: unknown) {
       set({ error: (e as Error).message, loading: false });
     }
@@ -148,19 +274,62 @@ export const useStore = create<AppStore>((set, get) => ({
       const pro = get().pronunciations.find((p) => p.id === id);
       await api.pronunciations.delete(id);
       if (pro) await get().fetchTerm(pro.term);
-      await get().fetchPronunciations(get().pronunciationFilterTermId);
-      await get().fetchTerms();
+      const { pronunciationsFilterParams, pronunciationsPagination } = get();
+      let { page } = pronunciationsPagination;
+      const queryParams = buildParamsWithPagination(pronunciationsFilterParams, page, pronunciationsPagination.pageSize);
+      const res = await api.pronunciations.list(queryParams);
+      if (res.results.length === 0 && page > 1) {
+        page -= 1;
+        const prevParams = buildParamsWithPagination(pronunciationsFilterParams, page, pronunciationsPagination.pageSize);
+        const prevRes = await api.pronunciations.list(prevParams);
+        set({
+          pronunciations: prevRes.results,
+          pronunciationsPagination: { ...pronunciationsPagination, page, total: prevRes.count },
+          loading: false,
+        });
+      } else {
+        set({
+          pronunciations: res.results,
+          pronunciationsPagination: { ...pronunciationsPagination, total: res.count },
+          loading: false,
+        });
+      }
+      await get().fetchTerms(get().termsFilterParams, false);
     } catch (e: unknown) {
       set({ error: (e as Error).message, loading: false });
     }
   },
 
-  fetchAnnotations: async (termId) => {
-    set({ loading: true, error: null, annotationFilterTermId: termId });
+  fetchAnnotations: async (params, resetPage = true) => {
+    set({ loading: true, error: null });
     try {
-      const params = termId ? { term: String(termId) } : undefined;
-      const res = await api.annotations.list(params);
-      set({ annotations: res.results, loading: false });
+      const filterParams = params ?? get().annotationsFilterParams;
+      const { page, pageSize } = get().annotationsPagination;
+      const currentPage = resetPage ? 1 : page;
+      const queryParams = buildParamsWithPagination(filterParams, currentPage, pageSize);
+      const res = await api.annotations.list(queryParams);
+      set({
+        annotations: res.results,
+        annotationsPagination: { page: currentPage, pageSize, total: res.count },
+        annotationsFilterParams: filterParams,
+        loading: false,
+      });
+    } catch (e: unknown) {
+      set({ error: (e as Error).message, loading: false });
+    }
+  },
+
+  setAnnotationsPage: async (page: number) => {
+    set({ loading: true, error: null });
+    try {
+      const { annotationsFilterParams, annotationsPagination } = get();
+      const queryParams = buildParamsWithPagination(annotationsFilterParams, page, annotationsPagination.pageSize);
+      const res = await api.annotations.list(queryParams);
+      set({
+        annotations: res.results,
+        annotationsPagination: { ...annotationsPagination, page, total: res.count },
+        loading: false,
+      });
     } catch (e: unknown) {
       set({ error: (e as Error).message, loading: false });
     }
@@ -171,8 +340,9 @@ export const useStore = create<AppStore>((set, get) => ({
     try {
       await api.annotations.create(data);
       if (data.term) await get().fetchTerm(data.term);
-      await get().fetchAnnotations(get().annotationFilterTermId);
-      await get().fetchTerms();
+      const { annotationsFilterParams, annotationsPagination } = get();
+      await get().fetchAnnotations(annotationsFilterParams, false);
+      await get().fetchTerms(get().termsFilterParams, false);
     } catch (e: unknown) {
       set({ error: (e as Error).message, loading: false });
     }
@@ -183,8 +353,9 @@ export const useStore = create<AppStore>((set, get) => ({
     try {
       await api.annotations.update(id, data);
       if (data.term) await get().fetchTerm(data.term);
-      await get().fetchAnnotations(get().annotationFilterTermId);
-      await get().fetchTerms();
+      const { annotationsFilterParams, annotationsPagination } = get();
+      await get().fetchAnnotations(annotationsFilterParams, false);
+      await get().fetchTerms(get().termsFilterParams, false);
     } catch (e: unknown) {
       set({ error: (e as Error).message, loading: false });
     }
@@ -196,19 +367,62 @@ export const useStore = create<AppStore>((set, get) => ({
       const ann = get().annotations.find((a) => a.id === id);
       await api.annotations.delete(id);
       if (ann) await get().fetchTerm(ann.term);
-      await get().fetchAnnotations(get().annotationFilterTermId);
-      await get().fetchTerms();
+      const { annotationsFilterParams, annotationsPagination } = get();
+      let { page } = annotationsPagination;
+      const queryParams = buildParamsWithPagination(annotationsFilterParams, page, annotationsPagination.pageSize);
+      const res = await api.annotations.list(queryParams);
+      if (res.results.length === 0 && page > 1) {
+        page -= 1;
+        const prevParams = buildParamsWithPagination(annotationsFilterParams, page, annotationsPagination.pageSize);
+        const prevRes = await api.annotations.list(prevParams);
+        set({
+          annotations: prevRes.results,
+          annotationsPagination: { ...annotationsPagination, page, total: prevRes.count },
+          loading: false,
+        });
+      } else {
+        set({
+          annotations: res.results,
+          annotationsPagination: { ...annotationsPagination, total: res.count },
+          loading: false,
+        });
+      }
+      await get().fetchTerms(get().termsFilterParams, false);
     } catch (e: unknown) {
       set({ error: (e as Error).message, loading: false });
     }
   },
 
-  fetchVersions: async (termId) => {
-    set({ loading: true, error: null, versionFilterTermId: termId });
+  fetchVersions: async (params, resetPage = true) => {
+    set({ loading: true, error: null });
     try {
-      const params = termId ? { term: String(termId) } : undefined;
-      const res = await api.versions.list(params);
-      set({ versions: res.results, loading: false });
+      const filterParams = params ?? get().versionsFilterParams;
+      const { page, pageSize } = get().versionsPagination;
+      const currentPage = resetPage ? 1 : page;
+      const queryParams = buildParamsWithPagination(filterParams, currentPage, pageSize);
+      const res = await api.versions.list(queryParams);
+      set({
+        versions: res.results,
+        versionsPagination: { page: currentPage, pageSize, total: res.count },
+        versionsFilterParams: filterParams,
+        loading: false,
+      });
+    } catch (e: unknown) {
+      set({ error: (e as Error).message, loading: false });
+    }
+  },
+
+  setVersionsPage: async (page: number) => {
+    set({ loading: true, error: null });
+    try {
+      const { versionsFilterParams, versionsPagination } = get();
+      const queryParams = buildParamsWithPagination(versionsFilterParams, page, versionsPagination.pageSize);
+      const res = await api.versions.list(queryParams);
+      set({
+        versions: res.results,
+        versionsPagination: { ...versionsPagination, page, total: res.count },
+        loading: false,
+      });
     } catch (e: unknown) {
       set({ error: (e as Error).message, loading: false });
     }
@@ -219,8 +433,9 @@ export const useStore = create<AppStore>((set, get) => ({
     try {
       await api.versions.create(data);
       if (data.term) await get().fetchTerm(data.term);
-      await get().fetchVersions(get().versionFilterTermId);
-      await get().fetchTerms();
+      const { versionsFilterParams, versionsPagination } = get();
+      await get().fetchVersions(versionsFilterParams, false);
+      await get().fetchTerms(get().termsFilterParams, false);
     } catch (e: unknown) {
       set({ error: (e as Error).message, loading: false });
     }
@@ -231,8 +446,9 @@ export const useStore = create<AppStore>((set, get) => ({
     try {
       await api.versions.update(id, data);
       if (data.term) await get().fetchTerm(data.term);
-      await get().fetchVersions(get().versionFilterTermId);
-      await get().fetchTerms();
+      const { versionsFilterParams, versionsPagination } = get();
+      await get().fetchVersions(versionsFilterParams, false);
+      await get().fetchTerms(get().termsFilterParams, false);
     } catch (e: unknown) {
       set({ error: (e as Error).message, loading: false });
     }
@@ -244,8 +460,27 @@ export const useStore = create<AppStore>((set, get) => ({
       const ver = get().versions.find((v) => v.id === id);
       await api.versions.delete(id);
       if (ver) await get().fetchTerm(ver.term);
-      await get().fetchVersions(get().versionFilterTermId);
-      await get().fetchTerms();
+      const { versionsFilterParams, versionsPagination } = get();
+      let { page } = versionsPagination;
+      const queryParams = buildParamsWithPagination(versionsFilterParams, page, versionsPagination.pageSize);
+      const res = await api.versions.list(queryParams);
+      if (res.results.length === 0 && page > 1) {
+        page -= 1;
+        const prevParams = buildParamsWithPagination(versionsFilterParams, page, versionsPagination.pageSize);
+        const prevRes = await api.versions.list(prevParams);
+        set({
+          versions: prevRes.results,
+          versionsPagination: { ...versionsPagination, page, total: prevRes.count },
+          loading: false,
+        });
+      } else {
+        set({
+          versions: res.results,
+          versionsPagination: { ...versionsPagination, total: res.count },
+          loading: false,
+        });
+      }
+      await get().fetchTerms(get().termsFilterParams, false);
     } catch (e: unknown) {
       set({ error: (e as Error).message, loading: false });
     }

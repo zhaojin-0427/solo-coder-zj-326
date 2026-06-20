@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { useStore } from '@/store';
 import type { Term } from '@/types';
 import { ERA_OPTIONS, CATEGORY_OPTIONS, STATUS_MAP } from '@/types';
+import Pagination from '@/components/Pagination';
 import {
   Search,
   Plus,
@@ -33,7 +34,7 @@ const EMPTY_FORM = {
 };
 
 export default function Collection() {
-  const { terms, termsCount, currentTerm, loading, fetchTerms, fetchTerm, createTerm, updateTerm, deleteTerm } = useStore();
+  const { terms, termsPagination, currentTerm, loading, fetchTerms, setTermsPage, fetchTerm, createTerm, updateTerm, deleteTerm } = useStore();
 
   const [search, setSearch] = useState('');
   const [filterEra, setFilterEra] = useState('');
@@ -50,7 +51,7 @@ export default function Collection() {
     if (filterEra) params.era = filterEra;
     if (filterCategory) params.category = filterCategory;
     if (filterStatus) params.status = filterStatus;
-    fetchTerms(params);
+    fetchTerms(params, true);
   }, [search, filterEra, filterCategory, filterStatus, fetchTerms]);
 
   const openCreateForm = () => {
@@ -138,10 +139,6 @@ export default function Collection() {
         </div>
       </div>
 
-      <div className="flex items-center justify-between mb-4">
-        <p className="text-sm text-ink-500">共 <span className="font-semibold text-ochre-500">{termsCount}</span> 个词条</p>
-      </div>
-
       {loading && !terms.length ? (
         <div className="text-center py-20 text-ink-400">
           <div className="animate-spin w-8 h-8 border-2 border-ochre-500 border-t-transparent rounded-full mx-auto mb-3" />
@@ -153,6 +150,7 @@ export default function Collection() {
           <p className="text-ink-400">暂无词条数据</p>
         </div>
       ) : (
+        <>
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
           {terms.map((term) => (
             <div
@@ -199,6 +197,14 @@ export default function Collection() {
             </div>
           ))}
         </div>
+
+        <Pagination
+          page={termsPagination.page}
+          pageSize={termsPagination.pageSize}
+          total={termsPagination.total}
+          onPageChange={setTermsPage}
+        />
+      </>
       )}
 
       {showForm && (

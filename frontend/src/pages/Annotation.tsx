@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { useStore } from '@/store';
 import type { Annotation, Term } from '@/types';
 import { ANNOTATION_TYPE_MAP, ROLE_MAP } from '@/types';
+import Pagination from '@/components/Pagination';
 import {
   PenTool,
   Plus,
@@ -259,7 +260,7 @@ function AnnotationCard({ annotation, termWord, onEdit, onDelete }: { annotation
 }
 
 export default function AnnotationPage() {
-  const { terms, annotations, loading, fetchTerms, fetchAnnotations, createAnnotation, updateAnnotation, deleteAnnotation } = useStore();
+  const { allTerms, annotations, annotationsPagination, loading, fetchAllTerms, fetchAnnotations, setAnnotationsPage, createAnnotation, updateAnnotation, deleteAnnotation } = useStore();
 
   const [selectedTermId, setSelectedTermId] = useState<number | ''>('');
   const [activeType, setActiveType] = useState<AnnotationType | 'all'>('all');
@@ -268,24 +269,19 @@ export default function AnnotationPage() {
   const [form, setForm] = useState(EMPTY_FORM);
 
   useEffect(() => {
-    fetchTerms();
-  }, [fetchTerms]);
+    fetchAllTerms();
+  }, [fetchAllTerms]);
 
   useEffect(() => {
-    fetchAnnotations(selectedTermId || undefined);
-  }, [selectedTermId, fetchAnnotations]);
+    const params: Record<string, string> = {};
+    if (selectedTermId) params.term = String(selectedTermId);
+    if (activeType !== 'all') params.type = activeType;
+    fetchAnnotations(params, true);
+  }, [selectedTermId, activeType, fetchAnnotations]);
 
-  const termMap: Map<number, Term> = new Map(terms.map((t) => [t.id, t]));
+  const termMap: Map<number, Term> = new Map(allTerms.map((t) => [t.id, t]));
 
-  const filteredAnnotations = annotations.filter((a) => {
-    if (activeType !== 'all' && a.type !== activeType) return false;
-    return true;
-  });
-
-  const typeCounts = annotations.reduce<Record<string, number>>((acc, a) => {
-    acc[a.type] = (acc[a.type] || 0) + 1;
-    return acc;
-  }, {});
+  const filteredAnnotations = annotations;
 
   const openCreateForm = () => {
     setEditingId(null);
@@ -293,7 +289,7 @@ export default function AnnotationPage() {
     setForm({
       ...EMPTY_FORM,
       type: defaultType,
-      term: selectedTermId || (terms[0]?.id ?? 0),
+      term: selectedTermId || (allTerms[0]?.id ?? 0),
       extra_data: {},
     });
     setShowForm(true);
@@ -372,7 +368,7 @@ export default function AnnotationPage() {
                 onChange={(e) => setSelectedTermId(e.target.value ? Number(e.target.value) : '')}
               >
                 <option value="">全部词条</option>
-                {terms.map((t) => (
+                {allTerms.map((t) => (
                   <option key={t.id} value={t.id}>{t.word}</option>
                 ))}
               </select>
@@ -401,7 +397,6 @@ export default function AnnotationPage() {
       <div className="flex gap-1.5 mb-6 overflow-x-auto pb-1">
         {tabs.map((tab) => {
           const isActive = activeType === tab.key;
-          const count = tab.key === 'all' ? annotations.length : (typeCounts[tab.key] || 0);
           const accent = tab.key !== 'all' ? TYPE_ACCENT[tab.key as AnnotationType] : null;
           return (
             <button
@@ -417,9 +412,6 @@ export default function AnnotationPage() {
             >
               <tab.icon className="w-3.5 h-3.5" />
               {tab.label}
-              <span className={`text-xs ml-0.5 ${isActive ? 'opacity-80' : 'opacity-50'}`}>
-                {count}
-              </span>
             </button>
           );
         })}
@@ -427,7 +419,7 @@ export default function AnnotationPage() {
 
       <div className="flex items-center justify-between mb-4">
         <p className="text-sm text-ink-500">
-          共 <span className="font-semibold text-ochre-500">{filteredAnnotations.length}</span> 条注解
+          共 <span className="font-semibold text-ochre-500">{annotationsPagination.total}</span> 条注解
         </p>
       </div>
 
@@ -443,6 +435,7 @@ export default function AnnotationPage() {
           <p className="text-sm text-ink-300 mt-1">点击"添加注解"开始标注</p>
         </div>
       ) : (
+        <>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           {filteredAnnotations.map((ann) => (
             <AnnotationCard
@@ -454,6 +447,14 @@ export default function AnnotationPage() {
             />
           ))}
         </div>
+
+        <Pagination
+          page={annotationsPagination.page}
+          pageSize={annotationsPagination.pageSize}
+          total={annotationsPagination.total}
+          onPageChange={setAnnotationsPage}
+        />
+      </>
       )}
 
       {showForm && (
@@ -480,7 +481,7 @@ export default function AnnotationPage() {
                   onChange={(e) => setForm({ ...form, term: Number(e.target.value) })}
                 >
                   <option value={0}>选择词条</option>
-                  {terms.map((t) => (
+                  {allTerms.map((t) => (
                     <option key={t.id} value={t.id}>{t.word}</option>
                   ))}
                 </select>
