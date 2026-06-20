@@ -1,4 +1,4 @@
-import type { Term, TermDetail, Pronunciation, Annotation, Version, Statistics, PaginatedResponse, Story, StoryDetail, StoryRevision, StoryFilters } from '@/types';
+import type { Term, TermDetail, Pronunciation, Annotation, Version, Statistics, PaginatedResponse, Story, StoryDetail, StoryRevision, StoryFilters, Location, LocationDetail, LocationFilters } from '@/types';
 
 const BASE = '/api';
 
@@ -21,8 +21,8 @@ export const api = {
       return request<PaginatedResponse<Term>>(`/terms/${qs}`);
     },
     get: (id: number) => request<TermDetail>(`/terms/${id}/`),
-    create: (data: Partial<Term>) => request<Term>('/terms/', { method: 'POST', body: JSON.stringify(data) }),
-    update: (id: number, data: Partial<Term>) => request<Term>(`/terms/${id}/`, { method: 'PUT', body: JSON.stringify(data) }),
+    create: (data: Partial<Term> & { locations?: number[] }) => request<Term>('/terms/', { method: 'POST', body: JSON.stringify(data) }),
+    update: (id: number, data: Partial<Term> & { locations?: number[] }) => request<Term>(`/terms/${id}/`, { method: 'PUT', body: JSON.stringify(data) }),
     delete: (id: number) => request<void>(`/terms/${id}/`, { method: 'DELETE' }),
   },
   pronunciations: {
@@ -58,8 +58,8 @@ export const api = {
       return request<PaginatedResponse<Story>>(`/stories/${qs}`);
     },
     get: (id: number) => request<StoryDetail>(`/stories/${id}/`),
-    create: (data: Partial<Story> & { related_terms?: number[] | string }) => request<Story>('/stories/', { method: 'POST', body: JSON.stringify(data) }),
-    update: (id: number, data: Partial<Story> & { related_terms?: number[] | string }) => request<Story>(`/stories/${id}/`, { method: 'PUT', body: JSON.stringify(data) }),
+    create: (data: Partial<Story> & { related_terms?: number[] | string; locations?: number[] }) => request<Story>('/stories/', { method: 'POST', body: JSON.stringify(data) }),
+    update: (id: number, data: Partial<Story> & { related_terms?: number[] | string; locations?: number[] }) => request<Story>(`/stories/${id}/`, { method: 'PUT', body: JSON.stringify(data) }),
     delete: (id: number) => request<void>(`/stories/${id}/`, { method: 'DELETE' }),
     getFilters: () => request<StoryFilters>('/story-filters/'),
   },
@@ -71,6 +71,17 @@ export const api = {
     create: (data: Partial<StoryRevision>) => request<StoryRevision>('/story-revisions/', { method: 'POST', body: JSON.stringify(data) }),
     update: (id: number, data: Partial<StoryRevision>) => request<StoryRevision>(`/story-revisions/${id}/`, { method: 'PUT', body: JSON.stringify(data) }),
     delete: (id: number) => request<void>(`/story-revisions/${id}/`, { method: 'DELETE' }),
+  },
+  locations: {
+    list: (params?: Record<string, string>) => {
+      const qs = params ? '?' + new URLSearchParams(params).toString() : '';
+      return request<PaginatedResponse<Location>>(`/locations/${qs}`);
+    },
+    get: (id: number) => request<LocationDetail>(`/locations/${id}/`),
+    create: (data: Partial<Location>) => request<Location>('/locations/', { method: 'POST', body: JSON.stringify(data) }),
+    update: (id: number, data: Partial<Location>) => request<Location>(`/locations/${id}/`, { method: 'PUT', body: JSON.stringify(data) }),
+    delete: (id: number) => request<void>(`/locations/${id}/`, { method: 'DELETE' }),
+    getFilters: () => request<LocationFilters>('/location-filters/'),
   },
   statistics: {
     get: () => request<Statistics>('/statistics/'),

@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { NavLink, Outlet } from 'react-router-dom';
-import { BookOpen, Mic, PenTool, Users, BarChart3, Menu, X, ScrollText } from 'lucide-react';
+import { BookOpen, Mic, PenTool, Users, BarChart3, Menu, X, ScrollText, MapPin } from 'lucide-react';
 
 const navItems = [
   { to: '/collection', label: '词条采集', icon: BookOpen },
@@ -8,6 +8,7 @@ const navItems = [
   { to: '/annotation', label: '语义注解', icon: PenTool },
   { to: '/stories', label: '故事档案', icon: ScrollText },
   { to: '/collaboration', label: '家庭共编', icon: Users },
+  { to: '/dialect-map', label: '方言地图', icon: MapPin },
   { to: '/statistics', label: '统计总览', icon: BarChart3 },
 ];
 

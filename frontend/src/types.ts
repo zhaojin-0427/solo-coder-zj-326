@@ -13,12 +13,14 @@ export interface Term {
   pronunciation_count?: number;
   annotation_count?: number;
   version_count?: number;
+  location_count?: number;
 }
 
 export interface TermDetail extends Term {
   pronunciations: Pronunciation[];
   annotations: Annotation[];
   versions: Version[];
+  locations: TermLocation[];
 }
 
 export interface Pronunciation {
@@ -75,6 +77,7 @@ export interface Story {
   updated_at: string;
   related_terms_count?: number;
   revision_count?: number;
+  location_count?: number;
 }
 
 export interface StoryRelatedTerm {
@@ -100,6 +103,7 @@ export interface StoryRevision {
 export interface StoryDetail extends Story {
   related_terms: StoryRelatedTerm[];
   revisions: StoryRevision[];
+  locations: TermLocation[];
 }
 
 export interface StoryStatistics {
@@ -129,6 +133,7 @@ export interface Statistics {
   era_coverage: Record<string, number>;
   overview: { total_terms: number; total_pronunciations: number; total_annotations: number; total_versions: number; pending_count: number; total_stories?: number };
   story_statistics?: StoryStatistics;
+  migration_map_statistics?: MigrationMapStatistics;
 }
 
 export interface PaginatedResponse<T> {
@@ -166,4 +171,52 @@ export const STORY_STATUS_BADGE: Record<string, string> = {
 export interface StoryFilters {
   narrators: string[];
   tags: string[];
+}
+
+export interface TermLocation {
+  id: number;
+  name: string;
+  region: string;
+  latitude: number | null;
+  longitude: number | null;
+}
+
+export interface Location {
+  id: number;
+  name: string;
+  region: string;
+  latitude: number | null;
+  longitude: number | null;
+  era_start: string;
+  era_end: string;
+  family_members: string[];
+  description: string;
+  created_at: string;
+  updated_at: string;
+  term_count?: number;
+  story_count?: number;
+}
+
+export interface LocationDetail extends Location {
+  top_terms: Array<{ id: number; word: string; meaning: string; category: string }>;
+  representative_story: { id: number; title: string; era: string; narrator: string } | null;
+  related_family_members: string[];
+  recent_revisions: Array<{ id: number; story: number; change_note: string; contributed_by: string; created_at: string | null }>;
+}
+
+export interface LocationFilters {
+  regions: string[];
+  eras: string[];
+  family_members: string[];
+}
+
+export interface MigrationMapStatistics {
+  total_locations: number;
+  era_count: number;
+  top_terms_location: { id: number; name: string; term_count: number } | null;
+  top_stories_location: { id: number; name: string; story_count: number } | null;
+  region_distribution: Record<string, number>;
+  content_without_location_ratio: number;
+  content_without_location_count: number;
+  total_content_count: number;
 }

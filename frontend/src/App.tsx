@@ -7,6 +7,7 @@ import Stories from '@/pages/Stories';
 import StoryDetail from '@/pages/StoryDetail';
 import Collaboration from '@/pages/Collaboration';
 import Statistics from '@/pages/Statistics';
+import DialectMap from '@/pages/DialectMap';
 
 export default function App() {
   return (
@@ -20,6 +21,7 @@ export default function App() {
           <Route path="stories" element={<Stories />} />
           <Route path="stories/:id" element={<StoryDetail />} />
           <Route path="collaboration" element={<Collaboration />} />
+          <Route path="dialect-map" element={<DialectMap />} />
           <Route path="statistics" element={<Statistics />} />
         </Route>
       </Routes>

@@ -33,6 +33,7 @@ const EMPTY_FORM = {
   family_members: '' as string,
   tags: '' as string,
   related_terms: [] as number[],
+  locations: [] as number[],
   status: 'draft' as Story['status'],
   created_by: '',
 };
@@ -43,6 +44,7 @@ export default function Stories() {
     stories,
     storiesPagination,
     allTerms,
+    allLocations,
     storyFilters,
     loading,
     fetchStories,
@@ -52,6 +54,7 @@ export default function Stories() {
     updateStory,
     deleteStory,
     fetchStoryFilters,
+    fetchAllLocations,
   } = useStore();
 
   const [search, setSearch] = useState('');
@@ -63,12 +66,14 @@ export default function Stories() {
   const [editingId, setEditingId] = useState<number | null>(null);
   const [form, setForm] = useState(EMPTY_FORM);
   const [termSearch, setTermSearch] = useState('');
+  const [locationSearch, setLocationSearch] = useState('');
   const [deleteConfirmId, setDeleteConfirmId] = useState<number | null>(null);
 
   useEffect(() => {
     fetchAllTerms();
     fetchStoryFilters();
-  }, [fetchAllTerms, fetchStoryFilters]);
+    fetchAllLocations();
+  }, [fetchAllTerms, fetchStoryFilters, fetchAllLocations]);
 
   useEffect(() => {
     const params: Record<string, string> = {};
@@ -100,6 +105,7 @@ export default function Stories() {
       family_members: familyMembers,
       tags,
       related_terms: form.related_terms,
+      locations: form.locations,
     };
     if (editingId) {
       await updateStory(editingId, payload);
@@ -492,6 +498,54 @@ export default function Stories() {
                         );
                       })
                     )}
+                  </div>
+                </div>
+              </div>
+              <div>
+                <label className="label-text flex items-center gap-1.5">
+                  <MapPin className="w-4 h-4 text-ochre-500" />
+                  关联地点
+                </label>
+                <div className="bg-cream-50 rounded-lg border border-cream-200 p-3">
+                  <div className="relative mb-3">
+                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-ink-400" />
+                    <input
+                      type="text"
+                      className="input-field pl-10 !bg-white"
+                      placeholder="搜索地点..."
+                      value={locationSearch}
+                      onChange={(e) => setLocationSearch(e.target.value)}
+                    />
+                  </div>
+                  {form.locations.length > 0 && (
+                    <div className="flex flex-wrap gap-1.5 mb-3 pb-3 border-b border-cream-200">
+                      {allLocations.filter((l) => form.locations.includes(l.id)).map((l) => (
+                        <span
+                          key={l.id}
+                          className="inline-flex items-center gap-1 text-xs bg-ochre-100 text-ochre-700 px-2 py-1 rounded-full cursor-pointer hover:bg-ochre-200 transition-colors"
+                          onClick={() => setForm({ ...form, locations: form.locations.filter((id) => id !== l.id) })}
+                        >
+                          {l.name}
+                          <X className="w-3 h-3" />
+                        </span>
+                      ))}
+                    </div>
+                  )}
+                  <div className="max-h-32 overflow-y-auto space-y-1">
+                    {allLocations
+                      .filter((l) => !locationSearch || l.name.includes(locationSearch) || l.region.includes(locationSearch))
+                      .filter((l) => !form.locations.includes(l.id))
+                      .map((l) => (
+                        <div
+                          key={l.id}
+                          className="flex items-center gap-2 p-2 rounded-lg cursor-pointer hover:bg-cream-100 transition-colors"
+                          onClick={() => setForm({ ...form, locations: [...form.locations, l.id] })}
+                        >
+                          <MapPin className="w-3.5 h-3.5 text-ink-400" />
+                          <span className="text-sm text-ink-900">{l.name}</span>
+                          {l.region && <span className="text-xs text-ink-500">{l.region}</span>}
+                        </div>
+                      ))}
                   </div>
                 </div>
               </div>

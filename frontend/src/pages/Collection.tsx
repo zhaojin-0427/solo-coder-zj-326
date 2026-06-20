@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { useSearchParams } from 'react-router-dom';
+import { useSearchParams, useNavigate } from 'react-router-dom';
 import { useStore } from '@/store';
 import type { Term } from '@/types';
 import { ERA_OPTIONS, CATEGORY_OPTIONS, STATUS_MAP } from '@/types';
@@ -15,6 +15,7 @@ import {
   Calendar,
   Tag,
   ChevronRight,
+  MapPin,
 } from 'lucide-react';
 
 const STATUS_BADGE_CLASS: Record<string, string> = {
@@ -32,10 +33,12 @@ const EMPTY_FORM = {
   category: '',
   status: 'pending' as Term['status'],
   created_by: '',
+  locations: [] as number[],
 };
 
 export default function Collection() {
-  const { terms, termsPagination, currentTerm, loading, fetchTerms, setTermsPage, fetchTerm, createTerm, updateTerm, deleteTerm } = useStore();
+  const navigate = useNavigate();
+  const { terms, termsPagination, currentTerm, allLocations, loading, fetchTerms, setTermsPage, fetchTerm, createTerm, updateTerm, deleteTerm, fetchAllLocations } = useStore();
   const [searchParams, setSearchParams] = useSearchParams();
 
   const [search, setSearch] = useState('');
@@ -46,6 +49,11 @@ export default function Collection() {
   const [editingId, setEditingId] = useState<number | null>(null);
   const [form, setForm] = useState(EMPTY_FORM);
   const [showDetail, setShowDetail] = useState(false);
+  const [locationSearch, setLocationSearch] = useState('');
+
+  useEffect(() => {
+    fetchAllLocations();
+  }, [fetchAllLocations]);
 
   useEffect(() => {
     const params: Record<string, string> = {};
@@ -95,6 +103,7 @@ export default function Collection() {
       category: term.category,
       status: term.status,
       created_by: term.created_by,
+      locations: (term as any).locations?.map((l: any) => l.id) ?? [],
     });
     setShowForm(true);
   };
@@ -291,6 +300,54 @@ export default function Collection() {
                   <input className="input-field" value={form.created_by} onChange={(e) => setForm({ ...form, created_by: e.target.value })} placeholder="采集人姓名" />
                 </div>
               </div>
+              <div>
+                <label className="label-text flex items-center gap-1.5">
+                  <MapPin className="w-4 h-4 text-ochre-500" />
+                  关联地点
+                </label>
+                <div className="bg-cream-50 rounded-lg border border-cream-200 p-3">
+                  <div className="relative mb-3">
+                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-ink-400" />
+                    <input
+                      type="text"
+                      className="input-field pl-10 !bg-white"
+                      placeholder="搜索地点..."
+                      value={locationSearch}
+                      onChange={(e) => setLocationSearch(e.target.value)}
+                    />
+                  </div>
+                  {form.locations.length > 0 && (
+                    <div className="flex flex-wrap gap-1.5 mb-3 pb-3 border-b border-cream-200">
+                      {allLocations.filter((l) => form.locations.includes(l.id)).map((l) => (
+                        <span
+                          key={l.id}
+                          className="inline-flex items-center gap-1 text-xs bg-ochre-100 text-ochre-700 px-2 py-1 rounded-full cursor-pointer hover:bg-ochre-200 transition-colors"
+                          onClick={() => setForm({ ...form, locations: form.locations.filter((id) => id !== l.id) })}
+                        >
+                          {l.name}
+                          <X className="w-3 h-3" />
+                        </span>
+                      ))}
+                    </div>
+                  )}
+                  <div className="max-h-32 overflow-y-auto space-y-1">
+                    {allLocations
+                      .filter((l) => !locationSearch || l.name.includes(locationSearch) || l.region.includes(locationSearch))
+                      .filter((l) => !form.locations.includes(l.id))
+                      .map((l) => (
+                        <div
+                          key={l.id}
+                          className="flex items-center gap-2 p-2 rounded-lg cursor-pointer hover:bg-cream-100 transition-colors"
+                          onClick={() => setForm({ ...form, locations: [...form.locations, l.id] })}
+                        >
+                          <MapPin className="w-3.5 h-3.5 text-ink-400" />
+                          <span className="text-sm text-ink-900">{l.name}</span>
+                          {l.region && <span className="text-xs text-ink-500">{l.region}</span>}
+                        </div>
+                      ))}
+                  </div>
+                </div>
+              </div>
             </div>
             <div className="flex items-center justify-end gap-3 p-6 border-t border-cream-200">
               <button className="btn-outline" onClick={() => setShowForm(false)}>取消</button>
@@ -361,6 +418,29 @@ export default function Collection() {
                   <p className="text-xs text-ink-500">版本</p>
                 </div>
               </div>
+
+              {currentTerm.locations && currentTerm.locations.length > 0 && (
+                <div>
+                  <h4 className="text-sm font-medium text-ink-500 mb-2 flex items-center gap-1.5">
+                    <MapPin className="w-4 h-4" />
+                    关联地点
+                  </h4>
+                  <div className="flex flex-wrap gap-2">
+                    {currentTerm.locations.map((loc) => (
+                      <span
+                        key={loc.id}
+                        className="inline-flex items-center gap-1 text-sm bg-ochre-50 text-ochre-700 px-3 py-1.5 rounded-full cursor-pointer hover:bg-ochre-100 transition-colors"
+                        onClick={() => { closeDetail(); navigate(`/dialect-map?location=${loc.id}`); }}
+                      >
+                        <MapPin className="w-3.5 h-3.5" />
+                        {loc.name}
+                        {loc.region && <span className="text-ochre-500 text-xs">·{loc.region}</span>}
+                        <ChevronRight className="w-3 h-3" />
+                      </span>
+                    ))}
+                  </div>
+                </div>
+              )}
 
               {currentTerm.pronunciations?.length > 0 && (
                 <div>

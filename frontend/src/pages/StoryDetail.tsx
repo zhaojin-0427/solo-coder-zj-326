@@ -24,6 +24,7 @@ import {
   Check,
   AlertCircle,
   FileText,
+  Search,
 } from 'lucide-react';
 
 export default function StoryDetail() {
@@ -629,6 +630,31 @@ export default function StoryDetail() {
               </div>
             )}
           </div>
+
+          {currentStory.locations && currentStory.locations.length > 0 && (
+            <div className="card p-5">
+              <h3 className="font-display text-base text-ink-900 flex items-center gap-2 mb-3">
+                <MapPin className="w-4 h-4 text-ochre-500" />
+                关联地点
+              </h3>
+              <div className="space-y-2">
+                {currentStory.locations.map((loc) => (
+                  <Link
+                    key={loc.id}
+                    to={`/dialect-map?location=${loc.id}`}
+                    className="flex items-center gap-2 p-2 rounded-lg hover:bg-cream-50 transition-colors group"
+                  >
+                    <MapPin className="w-4 h-4 text-ochre-500 shrink-0" />
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm font-medium text-ink-900 group-hover:text-ochre-500 transition-colors">{loc.name}</p>
+                      {loc.region && <p className="text-xs text-ink-500">{loc.region}</p>}
+                    </div>
+                    <ChevronRight className="w-4 h-4 text-ink-300 group-hover:text-ochre-500 transition-colors shrink-0" />
+                  </Link>
+                ))}
+              </div>
+            </div>
+          )}
         </div>
       </div>
 
@@ -684,26 +710,6 @@ function Plus({ className }: { className?: string }) {
     >
       <path d="M12 5v14" />
       <path d="M5 12h14" />
-    </svg>
-  );
-}
-
-function Search({ className }: { className?: string }) {
-  return (
-    <svg
-      xmlns="http://www.w3.org/2000/svg"
-      width="24"
-      height="24"
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="2"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-      className={className}
-    >
-      <circle cx="11" cy="11" r="8" />
-      <path d="m21 21-4.35-4.35" />
     </svg>
   );
 }

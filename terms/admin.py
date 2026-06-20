@@ -1,5 +1,12 @@
 from django.contrib import admin
-from .models import Term, Pronunciation, Annotation, Version
+from .models import Location, Term, Pronunciation, Annotation, Version
+
+
+@admin.register(Location)
+class LocationAdmin(admin.ModelAdmin):
+    list_display = ['name', 'region', 'era_start', 'era_end', 'created_at']
+    list_filter = ['region']
+    search_fields = ['name', 'region']
 
 
 @admin.register(Term)

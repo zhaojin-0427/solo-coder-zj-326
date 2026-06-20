@@ -1,13 +1,80 @@
-from django.db.models import Count
-from rest_framework import viewsets
+from django.db.models import Count, Q
+from rest_framework import viewsets, status
 from rest_framework.views import APIView
 from rest_framework.response import Response
-from .models import Term, Pronunciation, Annotation, Version, Story, StoryRevision
+from .models import Location, Term, Pronunciation, Annotation, Version, Story, StoryRevision
 from .serializers import (
+    LocationSerializer, LocationDetailSerializer,
     TermSerializer, TermDetailSerializer, PronunciationSerializer,
     AnnotationSerializer, VersionSerializer, StorySerializer,
     StoryDetailSerializer, StoryRevisionSerializer,
 )
+
+
+class LocationViewSet(viewsets.ModelViewSet):
+    queryset = Location.objects.all()
+    serializer_class = LocationSerializer
+    filterset_fields = ['region']
+    search_fields = ['name', 'region', 'description']
+
+    def get_serializer_class(self):
+        if self.action == 'retrieve':
+            return LocationDetailSerializer
+        return LocationSerializer
+
+    def get_queryset(self):
+        queryset = super().get_queryset()
+        era = self.request.query_params.get('era')
+        if era:
+            queryset = queryset.filter(Q(era_start=era) | Q(era_end=era) | Q(era_start__lte=era, era_end__gte=era))
+        family_member = self.request.query_params.get('family_member')
+        if family_member:
+            queryset = queryset.filter(Q(family_members__icontains=family_member) | Q(stories__family_members__icontains=family_member)).distinct()
+        return queryset
+
+    def destroy(self, request, *args, **kwargs):
+        instance = self.get_object()
+        if instance.terms.exists() or instance.stories.exists():
+            term_count = instance.terms.count()
+            story_count = instance.stories.count()
+            return Response(
+                {
+                    'detail': '该地点仍有关联内容，无法删除',
+                    'term_count': term_count,
+                    'story_count': story_count,
+                },
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+        return super().destroy(request, *args, **kwargs)
+
+
+class LocationFiltersAPIView(APIView):
+    def get(self, request):
+        regions = list(
+            Location.objects.values_list('region', flat=True)
+            .exclude(region='')
+            .distinct()
+            .order_by('region')
+        )
+
+        all_eras = set()
+        for loc in Location.objects.all():
+            if loc.era_start:
+                all_eras.add(loc.era_start)
+            if loc.era_end:
+                all_eras.add(loc.era_end)
+
+        all_members = set()
+        for loc in Location.objects.all():
+            for m in (loc.family_members or []):
+                if m:
+                    all_members.add(m)
+
+        return Response({
+            'regions': regions,
+            'eras': sorted(all_eras),
+            'family_members': sorted(all_members),
+        })
 
 
 class TermViewSet(viewsets.ModelViewSet):
@@ -29,6 +96,9 @@ class TermViewSet(viewsets.ModelViewSet):
                 queryset = queryset.annotate(version_cnt=Count('versions')).filter(version_cnt__gt=0)
             elif has_versions.lower() in ('false', '0', 'no'):
                 queryset = queryset.annotate(version_cnt=Count('versions')).filter(version_cnt=0)
+        location_id = self.request.query_params.get('location')
+        if location_id:
+            queryset = queryset.filter(locations__id=location_id)
         return queryset
 
 
@@ -65,8 +135,11 @@ class StoryViewSet(viewsets.ModelViewSet):
         queryset = super().get_queryset()
         tag = self.request.query_params.get('tag')
         if tag:
-            from django.db.models import Q
-            queryset = queryset.filter(Q(tags__icontains=f'"{tag}"') | Q(tags__icontains=tag))
+            from django.db.models import Q as QMod
+            queryset = queryset.filter(QMod(tags__icontains=f'"{tag}"') | QMod(tags__icontains=tag))
+        location_id = self.request.query_params.get('location')
+        if location_id:
+            queryset = queryset.filter(locations__id=location_id)
         return queryset
 
 
@@ -184,6 +257,65 @@ class StatisticsAPIView(APIView):
             'tag_distribution': story_tag_distribution,
         }
 
+        total_locations = Location.objects.count()
+        all_eras_set = set()
+        for loc in Location.objects.all():
+            if loc.era_start:
+                all_eras_set.add(loc.era_start)
+            if loc.era_end:
+                all_eras_set.add(loc.era_end)
+        era_count = len(all_eras_set)
+
+        top_terms_location = (
+            Location.objects.annotate(terms_cnt=Count('terms'))
+            .order_by('-terms_cnt')
+            .first()
+        )
+        top_terms_location_data = None
+        if top_terms_location and top_terms_location.terms_cnt > 0:
+            top_terms_location_data = {
+                'id': top_terms_location.id,
+                'name': top_terms_location.name,
+                'term_count': top_terms_location.terms_cnt,
+            }
+
+        top_stories_location = (
+            Location.objects.annotate(stories_cnt=Count('stories'))
+            .order_by('-stories_cnt')
+            .first()
+        )
+        top_stories_location_data = None
+        if top_stories_location and top_stories_location.stories_cnt > 0:
+            top_stories_location_data = {
+                'id': top_stories_location.id,
+                'name': top_stories_location.name,
+                'story_count': top_stories_location.stories_cnt,
+            }
+
+        region_distribution = {
+            item['region']: item['count']
+            for item in Location.objects.values('region').annotate(count=Count('id')).order_by('-count')
+            if item['region']
+        }
+
+        total_content = total_terms + total_stories
+        content_with_location = (
+            Term.objects.filter(locations__isnull=False).distinct().count()
+            + Story.objects.filter(locations__isnull=False).distinct().count()
+        )
+        content_without_location_ratio = round(1 - content_with_location / total_content, 4) if total_content > 0 else 0
+
+        migration_map_statistics = {
+            'total_locations': total_locations,
+            'era_count': era_count,
+            'top_terms_location': top_terms_location_data,
+            'top_stories_location': top_stories_location_data,
+            'region_distribution': region_distribution,
+            'content_without_location_ratio': content_without_location_ratio,
+            'content_without_location_count': total_content - content_with_location,
+            'total_content_count': total_content,
+        }
+
         return Response({
             'category_distribution': category_distribution,
             'polysemy_count': {
@@ -195,4 +327,5 @@ class StatisticsAPIView(APIView):
             'era_coverage': era_coverage,
             'overview': overview,
             'story_statistics': story_statistics,
+            'migration_map_statistics': migration_map_statistics,
         })

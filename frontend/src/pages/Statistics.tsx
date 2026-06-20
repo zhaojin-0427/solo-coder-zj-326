@@ -29,6 +29,7 @@ import {
   Tag,
   Link as LinkIcon,
   Calendar,
+  MapPin,
 } from 'lucide-react';
 
 const CHART_COLORS = ['#C8553D', '#2D6A4F', '#D4A373', '#E8B088', '#873424', '#245840', '#F2E8CF'];
@@ -563,6 +564,178 @@ export default function Statistics() {
                     })}
                   </div>
                 )}
+              </div>
+            </>
+          )}
+
+          {statistics.migration_map_statistics && (
+            <>
+              <div className="border-t border-cream-200 pt-6">
+                <h2 className="section-title text-xl flex items-center gap-2 mb-6">
+                  <div className="w-8 h-8 rounded-lg bg-ochre-100 flex items-center justify-center">
+                    <MapPin className="w-4 h-4 text-ochre-600" />
+                  </div>
+                  迁徙地图统计
+                </h2>
+              </div>
+
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+                <div className="card p-5 flex flex-col items-start gap-3">
+                  <div className="w-10 h-10 rounded-xl flex items-center justify-center bg-ochre-50 text-ochre-500">
+                    <MapPin className="w-5 h-5" />
+                  </div>
+                  <div>
+                    <p className="text-xs text-ink-500 mb-0.5">地点总数</p>
+                    <p className="text-2xl font-bold text-ink-900 font-display">
+                      {statistics.migration_map_statistics.total_locations.toLocaleString()}
+                    </p>
+                  </div>
+                </div>
+                <div className="card p-5 flex flex-col items-start gap-3">
+                  <div className="w-10 h-10 rounded-xl flex items-center justify-center bg-sage-50 text-sage-600">
+                    <Calendar className="w-5 h-5" />
+                  </div>
+                  <div>
+                    <p className="text-xs text-ink-500 mb-0.5">覆盖年代数</p>
+                    <p className="text-2xl font-bold text-ink-900 font-display">
+                      {statistics.migration_map_statistics.era_count.toLocaleString()}
+                    </p>
+                  </div>
+                </div>
+                <div className="card p-5 flex flex-col items-start gap-3">
+                  <div className="w-10 h-10 rounded-xl flex items-center justify-center bg-amber-50 text-amber-600">
+                    <BookOpen className="w-5 h-5" />
+                  </div>
+                  <div>
+                    <p className="text-xs text-ink-500 mb-0.5">关联词最多地点</p>
+                    <p className="text-lg font-bold text-ink-900 font-display truncate max-w-full">
+                      {statistics.migration_map_statistics.top_terms_location
+                        ? statistics.migration_map_statistics.top_terms_location.name
+                        : '暂无'}
+                    </p>
+                    {statistics.migration_map_statistics.top_terms_location && (
+                      <p className="text-xs text-ochre-500">
+                        {statistics.migration_map_statistics.top_terms_location.term_count} 个词条
+                      </p>
+                    )}
+                  </div>
+                </div>
+                <div className="card p-5 flex flex-col items-start gap-3">
+                  <div className="w-10 h-10 rounded-xl flex items-center justify-center bg-purple-50 text-purple-600">
+                    <ScrollText className="w-5 h-5" />
+                  </div>
+                  <div>
+                    <p className="text-xs text-ink-500 mb-0.5">关联故事最多地点</p>
+                    <p className="text-lg font-bold text-ink-900 font-display truncate max-w-full">
+                      {statistics.migration_map_statistics.top_stories_location
+                        ? statistics.migration_map_statistics.top_stories_location.name
+                        : '暂无'}
+                    </p>
+                    {statistics.migration_map_statistics.top_stories_location && (
+                      <p className="text-xs text-ochre-500">
+                        {statistics.migration_map_statistics.top_stories_location.story_count} 个故事
+                      </p>
+                    )}
+                  </div>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                <div className="card p-6">
+                  <h3 className="section-title text-lg !mb-4 flex items-center gap-2">
+                    <TrendingUp className="w-5 h-5 text-ochre-500" />
+                    各地区地点分布
+                  </h3>
+                  {Object.keys(statistics.migration_map_statistics.region_distribution).length === 0 ? (
+                    <div className="text-center py-10 text-ink-400">
+                      <MapPin className="w-8 h-8 mx-auto mb-2 text-cream-400" />
+                      <p className="text-sm">暂无地区数据</p>
+                    </div>
+                  ) : (
+                    <ResponsiveContainer width="100%" height={300}>
+                      <BarChart
+                        data={Object.entries(statistics.migration_map_statistics.region_distribution)
+                          .map(([name, value]) => ({ name, value }))
+                          .sort((a, b) => b.value - a.value)}
+                        layout="vertical"
+                        margin={{ left: 20, right: 20 }}
+                      >
+                        <CartesianGrid strokeDasharray="3 3" stroke="#F2E8CF" horizontal={false} />
+                        <XAxis type="number" tick={{ fontSize: 12, fill: '#6B6B6B' }} />
+                        <YAxis
+                          type="category"
+                          dataKey="name"
+                          width={80}
+                          tick={{ fontSize: 11, fill: '#6B6B6B' }}
+                        />
+                        <Tooltip
+                          formatter={(value: number) => [`${value} 个地点`, '地点数']}
+                          contentStyle={{ borderRadius: 12, border: 'none', boxShadow: '0 4px 20px rgba(0,0,0,0.08)' }}
+                        />
+                        <Bar
+                          dataKey="value"
+                          fill="#2D6A4F"
+                          radius={[0, 6, 6, 0]}
+                          animationBegin={0}
+                          animationDuration={animDone ? 0 : 800}
+                        >
+                          {Object.keys(statistics.migration_map_statistics.region_distribution).map((_, index) => (
+                            <Cell key={`region-${index}`} fill={CHART_COLORS[index % CHART_COLORS.length]} />
+                          ))}
+                        </Bar>
+                      </BarChart>
+                    </ResponsiveContainer>
+                  )}
+                </div>
+
+                <div className="card p-6">
+                  <h3 className="section-title text-lg !mb-4 flex items-center gap-2">
+                    <AlertCircle className="w-5 h-5 text-amber-500" />
+                    地点归档覆盖
+                  </h3>
+                  <div className="space-y-6">
+                    <div className="grid grid-cols-3 gap-4">
+                      <div className="bg-ochre-50 rounded-xl p-4 text-center">
+                        <p className="text-3xl font-bold text-ochre-500 font-display">
+                          {statistics.migration_map_statistics.total_content_count}
+                        </p>
+                        <p className="text-xs text-ink-500 mt-1">内容总数</p>
+                      </div>
+                      <div className="bg-sage-50 rounded-xl p-4 text-center">
+                        <p className="text-3xl font-bold text-sage-600 font-display">
+                          {statistics.migration_map_statistics.total_content_count - statistics.migration_map_statistics.content_without_location_count}
+                        </p>
+                        <p className="text-xs text-ink-500 mt-1">已归档地点</p>
+                      </div>
+                      <div className="bg-cream-100 rounded-xl p-4 text-center">
+                        <p className="text-3xl font-bold text-ink-700 font-display">
+                          {(statistics.migration_map_statistics.content_without_location_ratio * 100).toFixed(1)}%
+                        </p>
+                        <p className="text-xs text-ink-500 mt-1">未归档比例</p>
+                      </div>
+                    </div>
+                    <div>
+                      <div className="flex items-center justify-between mb-2">
+                        <span className="text-sm text-ink-600">无地点归档内容</span>
+                        <span className="text-sm font-semibold text-ochre-500">
+                          {statistics.migration_map_statistics.content_without_location_count} / {statistics.migration_map_statistics.total_content_count}
+                        </span>
+                      </div>
+                      <div className="w-full h-3 bg-cream-200 rounded-full overflow-hidden">
+                        <div
+                          className="h-full rounded-full transition-all duration-1000 ease-out"
+                          style={{
+                            width: `${Math.min((1 - statistics.migration_map_statistics.content_without_location_ratio) * 100, 100)}%`,
+                            background: 'linear-gradient(90deg, #2D6A4F, #D4A373)',
+                          }}
+                        />
+                      </div>
+                      <p className="text-xs text-ink-400 mt-2">
+                        已有地点归档的内容占比 {((1 - statistics.migration_map_statistics.content_without_location_ratio) * 100).toFixed(1)}%
+                      </p>
+                    </div>
+                  </div>
+                </div>
               </div>
             </>
           )}

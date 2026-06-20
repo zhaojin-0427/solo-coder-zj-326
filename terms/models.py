@@ -1,6 +1,25 @@
 from django.db import models
 
 
+class Location(models.Model):
+    name = models.CharField(max_length=200)
+    region = models.CharField(max_length=200, blank=True, default='')
+    latitude = models.FloatField(null=True, blank=True)
+    longitude = models.FloatField(null=True, blank=True)
+    era_start = models.CharField(max_length=50, blank=True, default='')
+    era_end = models.CharField(max_length=50, blank=True, default='')
+    family_members = models.JSONField(default=list, blank=True)
+    description = models.TextField(blank=True, default='')
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ['-created_at']
+
+    def __str__(self):
+        return self.name
+
+
 class Term(models.Model):
     STATUS_CHOICES = [
         ('pending', '待确认'),
@@ -18,6 +37,7 @@ class Term(models.Model):
     created_by = models.CharField(max_length=100, blank=True, default='')
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
+    locations = models.ManyToManyField('Location', blank=True, related_name='terms')
 
     class Meta:
         ordering = ['-created_at']
@@ -119,6 +139,7 @@ class Story(models.Model):
     family_members = models.JSONField(default=list, blank=True)
     tags = models.JSONField(default=list, blank=True)
     related_terms = models.ManyToManyField(Term, blank=True, related_name='related_stories')
+    locations = models.ManyToManyField('Location', blank=True, related_name='stories')
     status = models.CharField(max_length=30, default='draft', choices=STATUS_CHOICES)
     created_by = models.CharField(max_length=100, blank=True, default='')
     created_at = models.DateTimeField(auto_now_add=True)
